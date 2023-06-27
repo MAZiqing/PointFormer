@@ -1,3 +1,19 @@
+results/
+test_results/
+checkpoints/
+
+test_results_filtered/
+a_speed_test/
+models/*.eps
+images/
+jupyter_notebooks/
+
+*.txt
+*.ipynb
+*.sh
+.DS_Store
+*.xlsx
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,3 +143,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.idea
