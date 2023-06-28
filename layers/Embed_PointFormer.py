@@ -127,7 +127,7 @@ class TimeFeatureEmbedding(nn.Module):
 class GeoPosEmbedding(nn.Module):
     def __init__(self, H, W, d_pos=4):
         super(GeoPosEmbedding, self).__init__()
-        self.embed = nn.Embedding(max(H, W), d_pos)
+        self.embed = nn.Linear(2, d_pos)
         position_H = repeat(torch.arange(0, H), 'h -> h w', w=W)
         position_W = repeat(torch.arange(0, W), 'w -> h w', h=H)
         position = torch.stack([position_H, position_W], dim=-1).float()
@@ -140,7 +140,7 @@ class GeoPosEmbedding(nn.Module):
 
 
 class DataEmbedding(nn.Module):
-    def __init__(self, H, W, c_in, d_model, root_path, node_num, embed_type='fixed', freq='h', dropout=0.1):
+    def __init__(self, H, W, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1):
         super(DataEmbedding, self).__init__()
         # spatial (24, 3)
 
@@ -165,7 +165,6 @@ class DataEmbedding(nn.Module):
 
         self.dropout = nn.Dropout(p=dropout)
         # others
-        self.node_num = node_num
 
     def forward(self, x, x_mark):
         # B T H W C
@@ -174,13 +173,15 @@ class DataEmbedding(nn.Module):
         x1 = repeat(x1, 'h w e -> b t h w e', b=B, t=T)
         x2 = self.token_embedding(x)
         x3 = self.temporal_embedding(x_mark)
+        x3 = repeat(x3, 'b t e -> b t h w e', h=H, w=W)
         # national_position = self.national_pos.to(x.device) \
         #     .reshape(self.node_num, self.national_pos.shape[0] // self.node_num, 3).view(self.node_num, -1)
         # x = self.value_embedding(x) + self.temporal_embedding(x_mark) + \
         #     self.national_embedding(national_position) \
         #         .unsqueeze(1).unsqueeze(0).repeat(B // self.node_num, 1, L, 1) \
         #         .view(B, L, -1)
-        return self.dropout(x1+x2+x3)
+        y = self.dropout(torch.cat([x1, x2, x3], dim=-1))
+        return y
 
 
 if __name__ == '__main__':
@@ -192,6 +193,8 @@ if __name__ == '__main__':
                           node_num=1)
     B = 1
     input_shape = (10, 16, 16, 3)
+    input_shape_mark = (10, 4)
     input_x = torch.randn(B, *input_shape)
-    out = model.forward(input_x, x_mark=None)
+    input_x_mark = torch.ones(B, *input_shape_mark).long()
+    out = model.forward(input_x, x_mark=input_x_mark)
     a = 1
