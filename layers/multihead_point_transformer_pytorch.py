@@ -37,13 +37,15 @@ class MultiheadPointTransformerLayer(nn.Module):
             self,
             *,
             dim,
+            dim_pos=2,
             heads=4,
-            dim_head=64,
-            pos_mlp_hidden_dim=64,
+            dim_head=8,
+            pos_mlp_hidden_dim=8,
             attn_mlp_hidden_mult=4,
             num_neighbors=None
     ):
         super().__init__()
+        self.dim_pos = dim_head
         self.heads = heads
         inner_dim = dim_head * heads
 
@@ -53,7 +55,7 @@ class MultiheadPointTransformerLayer(nn.Module):
         self.to_out = nn.Linear(inner_dim, dim)
 
         self.pos_mlp = nn.Sequential(
-            nn.Linear(3, pos_mlp_hidden_dim),
+            nn.Linear(dim_pos, pos_mlp_hidden_dim),
             nn.ReLU(),
             nn.Linear(pos_mlp_hidden_dim, inner_dim)
         )
@@ -80,11 +82,13 @@ class MultiheadPointTransformerLayer(nn.Module):
         # calculate relative positional embeddings
 
         rel_pos = rearrange(pos, 'b i c -> b i 1 c') - rearrange(pos, 'b j c -> b 1 j c')
-        rel_pos_emb = self.pos_mlp(rel_pos)
+        # rel_pos_emb = self.pos_mlp(rel_pos)
+        rel_pos_emb = rel_pos
 
         # split out heads for rel pos emb
 
-        rel_pos_emb = rearrange(rel_pos_emb, 'b i j (h d) -> b h i j d', h=h)
+        # rel_pos_emb = rearrange(rel_pos_emb, 'b i j (h d) -> b h i j d', h=h)
+        rel_pos_emb = repeat(rel_pos_emb, 'b i j d -> b h i j d', h=h)
 
         # use subtraction of queries to keys. i suppose this is a better inductive bias for point clouds than dot product
 
@@ -121,11 +125,11 @@ class MultiheadPointTransformerLayer(nn.Module):
 
         # add relative positional embeddings to value
 
-        v = v + rel_pos_emb
+        v = v # + rel_pos_emb
 
         # use attention mlp, making sure to add relative positional embedding first
 
-        attn_mlp_input = qk_rel + rel_pos_emb
+        attn_mlp_input = qk_rel # + rel_pos_emb
         attn_mlp_input = rearrange(attn_mlp_input, 'b h i j d -> b (h d) i j')
 
         sim = self.attn_mlp(attn_mlp_input)
@@ -154,6 +158,6 @@ class MultiheadPointTransformerLayer(nn.Module):
 if __name__ == '__main__':
     model = MultiheadPointTransformerLayer(dim=32, pos_mlp_hidden_dim=8, attn_mlp_hidden_mult=4, num_neighbors=5)
     x = torch.randn(1, 8 * 8, 32)
-    pos = torch.randn(1, 8 * 8, 3)
+    pos = torch.randn(1, 8 * 8, 2)
     out = model.forward(x, pos)
     a = 1

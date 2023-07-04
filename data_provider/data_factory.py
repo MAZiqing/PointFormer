@@ -1,9 +1,11 @@
 from data_provider.data_loader import Global_Temp, Global_Wind
+from data_provider.data_loader_era import EraDataset
 from torch.utils.data import DataLoader
 
 data_dict = {
     'Global_Temp': Global_Temp,
     'Global_Wind': Global_Wind,
+    'ERA5': EraDataset
 }
 
 

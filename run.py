@@ -14,15 +14,15 @@ parser = argparse.ArgumentParser(description='Corrformer for Time Series Forecas
 
 # basic config
 parser.add_argument('--is_training', type=int, default=1, help='status')
-parser.add_argument('--model_id', type=str, default='test', help='model id')
-parser.add_argument('--model', type=str, default='Corrformer',
-                    help='model name, options: [Corrformer]')
+# parser.add_argument('--model_id', type=str, default='test', help='model id')
+parser.add_argument('--model', type=str, default='PointFormer',
+                    help='model name, options: [Corrformer, PointFormer]')
 
 # data loader
-parser.add_argument('--data', type=str, default='Global_Wind', help='dataset type')
-parser.add_argument('--root_path', type=str, default='./dataset/global_wind/', help='root path of the data file')
+parser.add_argument('--data', type=str, default='ERA5', help='dataset type')
+parser.add_argument('--root_path', type=str, default='./dataset/ERA5/china/', help='root path of the data file')
 # parser.add_argument('--pos_filename', type=str, default='./data/ETT/', help='root path of the data file')
-# parser.add_argument('--data_path', type=str, default='ETTh1.csv', help='data file')
+parser.add_argument('--data_path', type=str, default='china_demo.npy', help='data file')
 parser.add_argument('--features', type=str, default='M',
                     help='forecasting task, options:[M, S, MS]; M:multivariate predict multivariate, S:univariate predict univariate, MS:multivariate predict univariate')
 parser.add_argument('--test_features', type=str, default='M',
@@ -39,32 +39,34 @@ parser.add_argument('--pred_len', type=int, default=96, help='prediction sequenc
 
 # model define
 parser.add_argument('--consistency_lambda', type=float, default=1.0, help='consistency loss weight')
-parser.add_argument('--enc_in', type=int, default=7, help='encoder input size')
-parser.add_argument('--dec_in', type=int, default=7, help='decoder input size')
+parser.add_argument('--c_in', type=int, default=7, help='encoder input size')
+# parser.add_argument('--dec_in', type=int, default=7, help='decoder input size')
 parser.add_argument('--c_out', type=int, default=7, help='output size')
-parser.add_argument('--node_num', type=int, default=100, help='number of nodes')
-parser.add_argument('--node_list', type=str, default='23,37,40', help='number of nodes for a tree')
+parser.add_argument('--height', type=int, default=7, help='output size')
+parser.add_argument('--width', type=int, default=7, help='output size')
+# parser.add_argument('--node_num', type=int, default=100, help='number of nodes')
+# parser.add_argument('--node_list', type=str, default='23,37,40', help='number of nodes for a tree')
 parser.add_argument('--d_model', type=int, default=512, help='dimension of model')
 parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
-parser.add_argument('--enc_tcn_layers', type=int, default=1, help='num of enc tcn layers')
-parser.add_argument('--dec_tcn_layers', type=int, default=3, help='num of dec tcn layers')
+# parser.add_argument('--enc_tcn_layers', type=int, default=1, help='num of enc tcn layers')
+# parser.add_argument('--dec_tcn_layers', type=int, default=3, help='num of dec tcn layers')
 parser.add_argument('--e_layers', type=int, default=2, help='num of encoder layers')
 parser.add_argument('--d_layers', type=int, default=1, help='num of decoder layers')
-parser.add_argument('--d_ff', type=int, default=2048, help='dimension of fcn')
-parser.add_argument('--moving_avg', type=int, default=25, help='window size of moving average')
-parser.add_argument('--factor', type=int, default=1, help='attn factor')
-parser.add_argument('--factor_temporal', type=int, default=1, help='attn factor')
-parser.add_argument('--factor_spatial', type=int, default=1, help='attn factor')
-parser.add_argument('--distil', action='store_false',
-                    help='whether to use distilling in encoder, using this argument means not using distilling',
-                    default=True)
-parser.add_argument('--dropout', type=float, default=0.05, help='dropout')
+# parser.add_argument('--d_ff', type=int, default=2048, help='dimension of fcn')
+# parser.add_argument('--moving_avg', type=int, default=25, help='window size of moving average')
+# parser.add_argument('--factor', type=int, default=1, help='attn factor')
+# parser.add_argument('--factor_temporal', type=int, default=1, help='attn factor')
+# parser.add_argument('--factor_spatial', type=int, default=1, help='attn factor')
+# parser.add_argument('--distil', action='store_false',
+#                     help='whether to use distilling in encoder, using this argument means not using distilling',
+#                     default=True)
+# parser.add_argument('--dropout', type=float, default=0.05, help='dropout')
 parser.add_argument('--embed', type=str, default='timeF',
                     help='time features encoding, options:[timeF, fixed, learned]')
-parser.add_argument('--activation', type=str, default='gelu', help='activation')
-parser.add_argument('--output_attention', action='store_true', help='whether to output attention in ecoder')
-parser.add_argument('--do_predict', action='store_true', help='whether to predict unseen future data')
-parser.add_argument('--pretrained_model', type=str, default='', help='pretrained model path')
+# parser.add_argument('--activation', type=str, default='gelu', help='activation')
+# parser.add_argument('--output_attention', action='store_true', help='whether to output attention in ecoder')
+# parser.add_argument('--do_predict', action='store_true', help='whether to predict unseen future data')
+# parser.add_argument('--pretrained_model', type=str, default='', help='pretrained model path')
 
 # optimization
 parser.add_argument('--num_workers', type=int, default=10, help='data loader num workers')
@@ -85,7 +87,7 @@ parser.add_argument('--use_multi_gpu', type=bool, default=False, help='use multi
 parser.add_argument('--devices', type=str, default='0,1,2,3', help='device ids of multile gpus')
 
 args = parser.parse_args()
-args.node_list = [int(x) for x in args.node_list.split(',')]
+# args.node_list = [int(x) for x in args.node_list.split(',')]
 
 
 args.use_gpu = True if torch.cuda.is_available() and args.use_gpu else False
@@ -104,28 +106,31 @@ Exp = Exp_Main
 if args.is_training:
     for ii in range(args.itr):
         # setting record of experiments
-        setting = '{}_{}_{}_ft{}_sl{}_ll{}_pl{}_node{}_node{}_bs{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_fct{}_fcs{}_eb{}_dt{}_{}_{}'.format(
-            args.model_id,
+        # setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_bs{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_fct{}_fcs{}_eb{}_dt{}_{}_{}'.format(
+        setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_bs{}_dm{}_nh{}_el{}_dl{}_{}'.format(
+            # args.model_id,
             args.model,
             args.data,
             args.features,
             args.seq_len,
             args.label_len,
             args.pred_len,
-            args.node_num,
-            args.node_list,
+            # args.node_num,
+            # args.node_list,
             args.batch_size,
             args.d_model,
             args.n_heads,
             args.e_layers,
             args.d_layers,
-            args.d_ff,
-            args.factor,
-            args.factor_temporal,
-            args.factor_spatial,
-            args.embed,
-            args.distil,
-            args.des, ii)
+            # args.d_ff,
+            # args.factor,
+            # args.factor_temporal,
+            # args.factor_spatial,
+            # args.embed,
+            # args.distil,
+            # args.des,
+            ii
+        )
 
         exp = Exp(args)  # set experiments
         print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
