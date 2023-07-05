@@ -42,13 +42,14 @@ class EraDataset(Dataset):
         return np.concatenate(npys, axis=0)
 
     def __read_data__(self):
+        print('============ dataloader start ==========')
         # self.raw_data = np.load(os.path.join(self.root_path, "temp_global_hourly_" + self.flag + ".npy"), allow_pickle=True)  # (17519, 34040, 3)
         files = os.listdir(self.root_path)
         files_time = [i for i in files if re.match('time.*.npy', i)]
         files_time.sort()
         files_data = [i for i in files if not re.match('time.*.npy', i)]
         files_data.sort()
-
+        print('dataload files to read: {}'.format(files_data))
         self.raw_data = self.__recurrently_read_data(self.root_path, files_data)
         self.raw_time = self.__recurrently_read_data(self.root_path, files_time)
         # self.raw_data = np.load(os.path.join(self.root_path, "china_demo.npy"), allow_pickle=True)  # (17519, 34040, 3)
@@ -87,8 +88,9 @@ class EraDataset(Dataset):
             self.data_y = data[int(test_start*N): int(test_end*N)]
             self.data_stamp = data_stamp[int(test_start*N): int(test_end*N)]
 
-        print("========= {} data sorted load finished, data read from {} ====".format(self.flag, files_data))
+        print("{} data load finished.".format(self.flag))
         print('data_x shape={}, time_shape={}'.format(data.shape, data_stamp.shape))
+        print('============ dataloader end ==========')
         a = 1
 
     def __getitem__(self, index):

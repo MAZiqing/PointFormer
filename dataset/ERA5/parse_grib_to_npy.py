@@ -16,7 +16,7 @@ from tqdm import tqdm
 from matplotlib import pyplot as plt
 
 
-def parse_grb_file(file_path: str, valid_date=None, columns: Optional[List] = None):
+def parse_grb_file(file_path, n=128):
     """
     Parse single grib file using dict. For each stepRange, the data will be flattened into lists, one for each feature,
     and merge with the previous dict.
@@ -52,7 +52,7 @@ def parse_grb_file(file_path: str, valid_date=None, columns: Optional[List] = No
     vs = np.stack(vs, axis=-1)
     times = np.array(times)
 
-    return vs, times, data
+    return vs[:, :n, :n, :], times, data
 
 
 if __name__ == '__main__':
