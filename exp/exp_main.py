@@ -64,15 +64,15 @@ class Exp_Main(Exp_Basic):
                 # encoder - decoder
                 if self.args.use_amp:
                     with torch.cuda.amp.autocast():
-                        if self.args.output_attention or self.args.model.count('Consistency') > 0:
-                            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                        else:
-                            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-                else:
-                    if self.args.output_attention or self.args.model.count('Consistency') > 0:
-                        outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                    else:
+                        # if self.args.output_attention or self.args.model.count('Consistency') > 0:
+                        #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
+                        # else:
                         outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                else:
+                    # if self.args.output_attention or self.args.model.count('Consistency') > 0:
+                    #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
+                    # else:
+                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
                 f_dim = -1 if self.args.features == 'MS' else 0
                 batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
 
@@ -127,20 +127,20 @@ class Exp_Main(Exp_Basic):
                 # encoder - decoder
                 if self.args.use_amp:
                     with torch.cuda.amp.autocast():
-                        if self.args.output_attention:
-                            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                        else:
-                            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                        # if self.args.output_attention:
+                        #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
+                        # else:
+                        outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
 
                         f_dim = -1 if self.args.features == 'MS' else 0
                         batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
                         loss = criterion(outputs, batch_y)
                         train_loss.append(loss.item())
                 else:
-                    if self.args.output_attention:
-                        outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                    else:
-                        outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                    # if self.args.output_attention:
+                    #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
+                    # else:
+                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
 
                     f_dim = -1 if self.args.features == 'MS' else 0
                     batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
@@ -275,15 +275,15 @@ class Exp_Main(Exp_Basic):
                 # encoder - decoder
                 if self.args.use_amp:
                     with torch.cuda.amp.autocast():
-                        if self.args.output_attention:
-                            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                        else:
-                            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-                else:
-                    if self.args.output_attention:
-                        outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                    else:
+                        # if self.args.output_attention:
+                        #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
+                        # else:
                         outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                else:
+                    # if self.args.output_attention:
+                    #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
+                    # else:
+                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
                 pred = outputs.detach().cpu().numpy()  # .squeeze()
                 preds.append(pred)
 
