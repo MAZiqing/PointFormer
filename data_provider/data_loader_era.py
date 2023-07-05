@@ -62,16 +62,30 @@ class EraDataset(Dataset):
         #     raw_data = raw_data[:, self.target:(self.target + 1), :1]
         data_len, height, width, feat = raw_data.shape
         # raw_data = raw_data.reshape(data_len, station * feat)  # (17519, 34040*3)
-        data = raw_data.astype(np.float)
 
+        data = raw_data.astype(np.float)
         df_stamp = raw_time
         df_stamp = pd.to_datetime(df_stamp)
         data_stamp = time_features(pd.to_datetime(df_stamp), freq=self.freq)
         data_stamp = data_stamp.transpose(1, 0)
 
-        self.data_x = data
-        self.data_y = data
-        self.data_stamp = data_stamp
+        train_start, train_end = 0, 0.5
+        valid_start, valid_end = 0.5, 0.75
+        test_start, test_end = 0.75, 1
+        N = data.shape[0]
+
+        if self.flag == 'train':
+            self.data_x = data[int(train_start*N): int(train_end*N)]
+            self.data_y = data[int(train_start*N): int(train_end*N)]
+            self.data_stamp = data_stamp[int(train_start*N): int(train_end*N)]
+        elif self.flag == 'valid':
+            self.data_x = data[int(valid_start*N): int(valid_end*N)]
+            self.data_y = data[int(valid_start*N): int(valid_end*N)]
+            self.data_stamp = data_stamp[int(valid_start*N): int(valid_end*N)]
+        elif self.flag == 'test':
+            self.data_x = data[int(test_start*N): int(test_end*N)]
+            self.data_y = data[int(test_start*N): int(test_end*N)]
+            self.data_stamp = data_stamp[int(test_start*N): int(test_end*N)]
 
         print("========= {} data sorted load finished, data read from {} ====".format(self.flag, files_data))
         print('data_x shape={}, time_shape={}'.format(data.shape, data_stamp.shape))

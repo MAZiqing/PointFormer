@@ -46,7 +46,7 @@ def parse_grb_file(file_path: str, valid_date=None, columns: Optional[List] = No
 
     vs = []
     for k, v in res_dict.items():
-        print(k)
+        # print(k)
         res_dict[k] = np.array(v)
         vs += [v]
     vs = np.stack(vs, axis=-1)

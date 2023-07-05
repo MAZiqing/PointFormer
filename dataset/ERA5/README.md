@@ -20,7 +20,7 @@ https://cds.climate.copernicus.eu/cdsapp#!/search?type=dataset
 数据放在 ./raw/china_raw/ 目录下面，该目录下面可以有多个文件，命名需要可以按时间sort就行
 ![image](https://github.com/MAZiqing/PointFormer/assets/44238026/02c16f29-4071-428e-9619-7994e0f26353)
 
-然后跑 python ./dataset/ERA5/parse_grib_to_npy.py 将下载的 grib 文件转化为 np.npy 文件。
+然后 cd ./dataset/ERA5 再 python parse_grib_to_npy.py 将下载的 grib 文件转化为 np.npy 文件。
 
 
 
