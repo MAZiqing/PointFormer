@@ -124,6 +124,10 @@ class Exp_Main(Exp_Basic):
                 dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
                 dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
 
+                if i == 0:
+                    print('input shape: batch_x={}, batch_x_mark={}, dec_inp={}, batch_y_mark={}'.format(
+                        batch_x.shape, batch_x_mark.shape, dec_inp.shape, batch_y_mark.shape
+                    ))
                 # encoder - decoder
                 if self.args.use_amp:
                     with torch.cuda.amp.autocast():

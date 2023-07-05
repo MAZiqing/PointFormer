@@ -303,7 +303,7 @@ class Model(nn.Module):
         x_divide8 = self.downsample_divide8(x_divide4)
 
         B, T, H8, W8, D8 = x_divide8.shape
-        x_dec = self.dec_embedding(x_dec)
+        x_dec = self.dec_embedding(x_dec, x_mark_dec)
         # x_dec = torch.randn(B, T+3, H8, W8, D8)
         x_dec_divide8 = self.attn_dec_divide8(x_dec, x_divide8, x_divide8) + x_dec
         x_dec_divide4 = self.upsample_divide8(x_dec_divide8)
