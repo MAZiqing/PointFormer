@@ -8,6 +8,8 @@ models/*.eps
 images/
 jupyter_notebooks/
 
+*.npy
+*.zip
 *.txt
 *.ipynb
 *.sh

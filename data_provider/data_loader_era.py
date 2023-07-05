@@ -42,18 +42,18 @@ class EraDataset(Dataset):
         return np.concatenate(npys, axis=0)
 
     def __read_data__(self):
-        print('============ process {} dataset start =========='.format(self.flag))
+        print('============ process 【{}】 dataset start =========='.format(self.flag))
         # self.raw_data = np.load(os.path.join(self.root_path, "temp_global_hourly_" + self.flag + ".npy"), allow_pickle=True)  # (17519, 34040, 3)
         files = os.listdir(self.root_path)
+        files = [i for i in files if re.match('.*.npy', i)]
         files_time = [i for i in files if re.match('time.*.npy', i)]
         files_time.sort()
         files_data = [i for i in files if not re.match('time.*.npy', i)]
         files_data.sort()
-        print('dataload files to read: {}'.format(files_data))
+        print('npy files to read: {}'.format(files_data))
         self.raw_data = self.__recurrently_read_data(self.root_path, files_data)
         self.raw_time = self.__recurrently_read_data(self.root_path, files_time)
-        # self.raw_data = np.load(os.path.join(self.root_path, "china_demo.npy"), allow_pickle=True)  # (17519, 34040, 3)
-        # self.raw_time = np.load(os.path.join(self.root_path, "time_demo.npy"), allow_pickle=True)  # (17519)
+
         raw_data = self.raw_data
         raw_time = self.raw_time
         # print(self.raw_data.shape)
@@ -91,7 +91,7 @@ class EraDataset(Dataset):
             raise NotImplementedError
 
         # print("{} data load finished.".format(self.flag))
-        print('data_x shape={}, time_shape={}'.format(self.data_x.shape, self.data_stamp.shape))
+        print('data_x shape = 【{}】, time shape = 【{}】'.format(self.data_x.shape, self.data_stamp.shape))
         print('============ dataset end ==========')
         a = 1
 
