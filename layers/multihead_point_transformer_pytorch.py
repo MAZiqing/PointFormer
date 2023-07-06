@@ -30,6 +30,19 @@ def batched_index_select(values, indices, dim=1):
     dim += value_expand_len
     return values.gather(dim, indices)
 
+def vector_select_batched_index(values, indices, dim=3):
+    B, H, I, neighbor = indices.shape
+    B, H, I, D = values.shape
+    select_size = 100
+    values_selected = []
+    for i in range(0, I, select_size):
+        v = repeat(values, 'b h i d -> b h s i d', s=select_size)
+        indice = repeat(indices[..., i:i + select_size, :], 'b h s i -> b h s i d', d=D)
+        y = v.gather(dim, indice)
+        values_selected += [y]
+    res = torch.cat(values_selected, dim=2)
+    return res
+
 
 # classes
 
@@ -111,7 +124,8 @@ class MultiheadPointTransformerLayer(nn.Module):
         return points_within_circle
 
     def forward(self, x, mask=None):
-        n, h = x.shape[1], self.heads
+        B, n, D = x.shape
+        h = self.heads
 
         # get queries, keys, values
 
@@ -123,7 +137,7 @@ class MultiheadPointTransformerLayer(nn.Module):
 
         # use subtraction of queries to keys. i suppose this is a better inductive bias for point clouds than dot product
 
-        qk_rel = rearrange(q, 'b h i d -> b h i 1 d') - rearrange(k, 'b h j d -> b h 1 j d')
+
 
         # prepare mask
 
@@ -132,33 +146,31 @@ class MultiheadPointTransformerLayer(nn.Module):
 
         # expand values
 
-        v = repeat(v, 'b h j d -> b h i j d', i=n)
-
-        # determine k nearest neighbors for each point, if specified
-
-        # if exists(num_neighbors) and num_neighbors < n:
-        #     rel_dist = rel_pos.norm(dim=-1)
-
-            # if exists(mask):
-            #     mask_value = max_value(rel_dist)
-            #     rel_dist.masked_fill_(~mask, mask_value)
-
-        # dist, indices = rel_dist.topk(num_neighbors, largest=False)
 
         indices = self.indices
+        indices_with_heads = repeat(indices, 'i j -> b h i j', b=B, h=h)
 
-        indices_with_heads = repeat(indices, 'b i j -> b h i j', h=h)
+        # 加速后的方法
+        v1 = vector_select_batched_index(v, indices_with_heads)
+        # 原方法
+        # v2 = repeat(v, 'b h j d -> b h i j d', i=n)
+        # v2 = batched_index_select(v2, indices_with_heads, dim=3)
 
-        v = batched_index_select(v, indices_with_heads, dim=3)
-        qk_rel = batched_index_select(qk_rel, indices_with_heads, dim=3)
+        # 加速后的方法
+        k1 = vector_select_batched_index(k, indices_with_heads)
+        qk_rel = rearrange(q, 'b h i d -> b h i 1 d') - k1
+        # 原方法
+        # qk_rel2 = rearrange(q, 'b h i d -> b h i 1 d') - rearrange(k, 'b h j d -> b h 1 j d')
+        # qk_rel2 = batched_index_select(qk_rel2, indices_with_heads, dim=3)
+
         # rel_pos_emb = batched_index_select(rel_pos_emb, indices_with_heads, dim=3)
 
-        if exists(mask):
-            mask = batched_index_select(mask, indices, dim=2)
+        # if exists(mask):
+        #     mask = batched_index_select(mask, indices, dim=2)
 
         # add relative positional embeddings to value
 
-        v = v # + rel_pos_emb
+        v1 = v1 # + rel_pos_emb
 
         # use attention mlp, making sure to add relative positional embedding first
 
@@ -169,10 +181,10 @@ class MultiheadPointTransformerLayer(nn.Module):
 
         # masking
 
-        if exists(mask):
-            mask_value = -max_value(sim)
-            mask = rearrange(mask, 'b i j -> b 1 i j')
-            sim.masked_fill_(~mask, mask_value)
+        # if exists(mask):
+        #     mask_value = -max_value(sim)
+        #     mask = rearrange(mask, 'b i j -> b 1 i j')
+        #     sim.masked_fill_(~mask, mask_value)
 
         # attention
 
@@ -180,8 +192,8 @@ class MultiheadPointTransformerLayer(nn.Module):
 
         # aggregate
 
-        v = rearrange(v, 'b h i j d -> b i j (h d)')
-        agg = einsum('b d i j, b i j d -> b i d', attn, v)
+        v1 = rearrange(v1, 'b h i j d -> b i j (h d)')
+        agg = einsum('b d i j, b i j d -> b i d', attn, v1)
 
         # combine heads
 
