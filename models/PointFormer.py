@@ -204,10 +204,10 @@ class Upsample3DLayer(nn.Module):
 
 
 class PointAttentionLayer(nn.Module):
-    def __init__(self, *, in_dim, hid_dim, out_dim, num_neighbors):
+    def __init__(self, *, H, W, in_dim, hid_dim, out_dim, neighbor_r=10):
         super(PointAttentionLayer, self).__init__()
-        self.point_transformer = MultiheadPointTransformerLayer(dim=in_dim, pos_mlp_hidden_dim=8,
-                                                                attn_mlp_hidden_mult=4, num_neighbors=num_neighbors)
+        self.point_transformer = MultiheadPointTransformerLayer(H=H, W=W, dim=in_dim, pos_mlp_hidden_dim=8,
+                                                                attn_mlp_hidden_mult=4, neighbor_r=neighbor_r)
 
         self.svd_former = SVDTransformer(in_dim=in_dim, hid_dim=hid_dim, out_dim=out_dim)
 
@@ -258,7 +258,7 @@ class Model(nn.Module):
         self.c_in = configs.c_in
         D = configs.d_model
         self.d_model = D
-        self.num_neighbor = 100
+        self.neighbor_r = 10
 
         # embed
         self.enc_embedding = DataEmbedding(H=self.H, W=self.W, c_in=self.c_in, d_model=D)
@@ -279,13 +279,13 @@ class Model(nn.Module):
 
         self.upsample_divide8 = Upsample3DLayer(dim=D*8, out_dim=D*4, target_size=(K, H//4, W//4))
 
-        self.attn = PointAttentionLayer(in_dim=D, hid_dim=D, out_dim=D, num_neighbors=self.num_neighbor)
-        self.attn_divide2 = PointAttentionLayer(in_dim=D*2, hid_dim=D*2, out_dim=D*2, num_neighbors=self.num_neighbor//2)
-        self.attn_divide4 = PointAttentionLayer(in_dim=D*4, hid_dim=D*4, out_dim=D*4, num_neighbors=self.num_neighbor//4)
-        self.attn_dec_divide8 = PointAttentionLayer(in_dim=D*8, hid_dim=D*8, out_dim=D*8, num_neighbors=self.num_neighbor//8)
-        self.attn_dec_divide4 = PointAttentionLayer(in_dim=D*4, hid_dim=D*4, out_dim=D*4, num_neighbors=self.num_neighbor//4)
-        self.attn_dec_divide2 = PointAttentionLayer(in_dim=D*2, hid_dim=D*2, out_dim=D*2, num_neighbors=self.num_neighbor//2)
-        self.attn_dec = PointAttentionLayer(in_dim=D, hid_dim=D, out_dim=D, num_neighbors=self.num_neighbor)
+        self.attn = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, neighbor_r=self.neighbor_r)
+        self.attn_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, neighbor_r=self.neighbor_r//2)
+        self.attn_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, neighbor_r=self.neighbor_r//4)
+        self.attn_dec_divide8 = PointAttentionLayer(H=H//8, W=W//8, in_dim=D*8, hid_dim=D*8, out_dim=D*8, neighbor_r=self.neighbor_r//8)
+        self.attn_dec_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, neighbor_r=self.neighbor_r//4)
+        self.attn_dec_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, neighbor_r=self.neighbor_r//2)
+        self.attn_dec = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, neighbor_r=self.neighbor_r)
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec,
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
@@ -338,8 +338,9 @@ if __name__ == '__main__':
 
     input_x = torch.randn(B, *input_shape)
     input_x_mark = torch.ones(B, *input_shape_mark).long()
+
     dec_x = torch.randn(B, *input_shape)
-    dec_x_mark = torch.randn(B, *input_shape)
+    dec_x_mark = torch.randn(B, *input_shape_mark).long()
     model = Model(configs=configs)
-    out = model.forward(input_x, input_x_mark, dec_x, dec_x_mark)
+    out = model.forward(input_x, input_x_mark, dec_x, input_x_mark)
     a = 1
