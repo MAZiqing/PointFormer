@@ -1,6 +1,7 @@
 import torch
 from torch import nn, einsum
 from einops import repeat, rearrange
+import numpy as np
 
 
 # helpers
@@ -36,20 +37,23 @@ class MultiheadPointTransformerLayer(nn.Module):
     def __init__(
             self,
             *,
+            H,
+            W,
             dim,
+            neighbor_r=10,
             dim_pos=2,
             heads=4,
             dim_head=8,
             pos_mlp_hidden_dim=8,
             attn_mlp_hidden_mult=4,
-            num_neighbors=None
+            # num_neighbors=None
     ):
         super().__init__()
         self.dim_pos = dim_head
         self.heads = heads
         inner_dim = dim_head * heads
 
-        self.num_neighbors = num_neighbors
+        # self.num_neighbors = num_neighbors
 
         self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
         self.to_out = nn.Linear(inner_dim, dim)
@@ -68,8 +72,46 @@ class MultiheadPointTransformerLayer(nn.Module):
             nn.Conv2d(attn_inner_dim, inner_dim, 1, groups=heads),
         )
 
-    def forward(self, x, pos, mask=None):
-        n, h, num_neighbors = x.shape[1], self.heads, self.num_neighbors
+        indices = self.init_neighbor_indices(H=H, W=W, r=neighbor_r)
+        self.indices = torch.tensor(indices)
+
+    def init_neighbor_indices(self, H, W, r=10):
+
+        # Create a squared tensor
+        tensor = np.random.rand(H, W)
+
+        # Set the radius of the circle
+        r = r
+        num_within_r = min(int(r**2 * np.pi), H*W)
+
+        # Create a meshgrid of i and j indices
+        i, j = np.meshgrid(np.arange(tensor.shape[0]), np.arange(tensor.shape[1]))
+
+        # Flatten the i and j indices
+        indices = np.ravel_multi_index((i, j), dims=tensor.shape)
+
+        # Initialize an empty list to store the indices of the points within the circle
+        points_within_circle = []
+
+        # Loop over each point in the flattened indices
+        for center_index in range(tensor.size):
+            # Calculate the distance between the center point and all other points
+            distance = np.sqrt((i - i.flat[center_index]) ** 2 + (j - j.flat[center_index]) ** 2)
+
+            # Create a boolean array where the value is True if the distance is less than or equal to r
+            idx = np.argpartition(distance.flatten(), num_within_r)
+            within_circle = indices.flatten()[idx[:num_within_r]]
+
+            # Append the indices of the points where the boolean array is True to the list
+            points_within_circle.append(within_circle)
+
+        # Convert the list of indices to a 2D NumPy array
+        points_within_circle = np.asarray(points_within_circle)
+
+        return points_within_circle
+
+    def forward(self, x, mask=None):
+        n, h = x.shape[1], self.heads
 
         # get queries, keys, values
 
@@ -79,25 +121,14 @@ class MultiheadPointTransformerLayer(nn.Module):
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
 
-        # calculate relative positional embeddings
-
-        rel_pos = rearrange(pos, 'b i c -> b i 1 c') - rearrange(pos, 'b j c -> b 1 j c')
-        # rel_pos_emb = self.pos_mlp(rel_pos)
-        rel_pos_emb = rel_pos
-
-        # split out heads for rel pos emb
-
-        # rel_pos_emb = rearrange(rel_pos_emb, 'b i j (h d) -> b h i j d', h=h)
-        rel_pos_emb = repeat(rel_pos_emb, 'b i j d -> b h i j d', h=h)
-
         # use subtraction of queries to keys. i suppose this is a better inductive bias for point clouds than dot product
 
         qk_rel = rearrange(q, 'b h i d -> b h i 1 d') - rearrange(k, 'b h j d -> b h 1 j d')
 
         # prepare mask
 
-        if exists(mask):
-            mask = rearrange(mask, 'b i -> b i 1') * rearrange(mask, 'b j -> b 1 j')
+        # if exists(mask):
+        #     mask = rearrange(mask, 'b i -> b i 1') * rearrange(mask, 'b j -> b 1 j')
 
         # expand values
 
@@ -105,23 +136,25 @@ class MultiheadPointTransformerLayer(nn.Module):
 
         # determine k nearest neighbors for each point, if specified
 
-        if exists(num_neighbors) and num_neighbors < n:
-            rel_dist = rel_pos.norm(dim=-1)
+        # if exists(num_neighbors) and num_neighbors < n:
+        #     rel_dist = rel_pos.norm(dim=-1)
 
-            if exists(mask):
-                mask_value = max_value(rel_dist)
-                rel_dist.masked_fill_(~mask, mask_value)
+            # if exists(mask):
+            #     mask_value = max_value(rel_dist)
+            #     rel_dist.masked_fill_(~mask, mask_value)
 
-            dist, indices = rel_dist.topk(num_neighbors, largest=False)
+        # dist, indices = rel_dist.topk(num_neighbors, largest=False)
 
-            indices_with_heads = repeat(indices, 'b i j -> b h i j', h=h)
+        indices = self.indices
 
-            v = batched_index_select(v, indices_with_heads, dim=3)
-            qk_rel = batched_index_select(qk_rel, indices_with_heads, dim=3)
-            rel_pos_emb = batched_index_select(rel_pos_emb, indices_with_heads, dim=3)
+        indices_with_heads = repeat(indices, 'b i j -> b h i j', h=h)
 
-            if exists(mask):
-                mask = batched_index_select(mask, indices, dim=2)
+        v = batched_index_select(v, indices_with_heads, dim=3)
+        qk_rel = batched_index_select(qk_rel, indices_with_heads, dim=3)
+        # rel_pos_emb = batched_index_select(rel_pos_emb, indices_with_heads, dim=3)
+
+        if exists(mask):
+            mask = batched_index_select(mask, indices, dim=2)
 
         # add relative positional embeddings to value
 
@@ -156,7 +189,7 @@ class MultiheadPointTransformerLayer(nn.Module):
 
 
 if __name__ == '__main__':
-    model = MultiheadPointTransformerLayer(dim=32, pos_mlp_hidden_dim=8, attn_mlp_hidden_mult=4, num_neighbors=5)
+    model = MultiheadPointTransformerLayer(H=8, W=8, dim=32, neighbor_r=3, pos_mlp_hidden_dim=8, attn_mlp_hidden_mult=4)
     x = torch.randn(1, 8 * 8, 32)
     pos = torch.randn(1, 8 * 8, 2)
     out = model.forward(x, pos)
