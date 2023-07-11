@@ -211,7 +211,8 @@ class PointAttentionLayer(nn.Module):
 
         self.svd_former = SVDTransformer(in_dim=in_dim, hid_dim=hid_dim, out_dim=out_dim)
 
-        self.norm = nn.LayerNorm(in_dim * 3)
+        self.norm_q = nn.LayerNorm(in_dim * 1)
+        self.norm_kv = nn.LayerNorm(in_dim * 2)
 
     def get_pos(self, x):
         B, T, H, W, C = x.shape
@@ -227,13 +228,15 @@ class PointAttentionLayer(nn.Module):
         # v.Shape=(B, T, H, W, C)
         B, K, H, W, C = q.shape
 
-        pos = self.get_pos(q)
+        # pos = self.get_pos(q)
         q = rearrange(q, 'b t h w c -> (b t) (h w) c')
-        pos = rearrange(pos, 'b t h w c -> (b t) (h w) c')
-        q_out = self.point_transformer(q, pos)
+        # pos = rearrange(pos, 'b t h w c -> (b t) (h w) c')
+        q_out = self.point_transformer(q)
         q_out = rearrange(q_out, '(b t) (h w) c -> b t h w c', b=B, h=H)
 
-        q, k, v = self.norm(torch.cat([q_out, k, v], dim=-1)).chunk(3, dim=-1)
+        # q, k, v = self.norm(torch.cat([q_out, k, v], dim=-1)).chunk(3, dim=-1)
+        q = self.norm_q(q_out)
+        k, v = self.norm_kv(torch.cat([k, v], dim=-1)).chunk(2, dim=-1)
 
         out = self.svd_former(q, k, v)
 
@@ -268,10 +271,13 @@ class Model(nn.Module):
                                                  in_channels=D, out_dim=D*2, mid_dim=D)
 
         self.downsample_divide4 = DownSampling3D(original_size=(T, H//2, W//2), target_size=(T, H//4, W//4),
-                                                 in_channels=D*2, out_dim=D*4, mid_dim=D)
+                                                 in_channels=D*2, out_dim=D*4, mid_dim=D*2)
 
         self.downsample_divide8 = DownSampling3D(original_size=(T, H//4, W//4), target_size=(T, H//8, W//8),
-                                                 in_channels=D*4, out_dim=D*8, mid_dim=D)
+                                                 in_channels=D*4, out_dim=D*8, mid_dim=D*4)
+
+        self.downsample_dec_divide8 = DownSampling3D(original_size=(K, H, W), target_size=(K, H // 8, W // 8),
+                                                     in_channels=D, out_dim=D*8, mid_dim=D*4)
 
         self.upsample_divide2 = Upsample3DLayer(dim=D*2, out_dim=D, target_size=(K, H, W))
 
@@ -303,9 +309,12 @@ class Model(nn.Module):
         x_divide8 = self.downsample_divide8(x_divide4)
 
         B, T, H8, W8, D8 = x_divide8.shape
+        x_dec = repeat(x_enc.clone().detach().mean(dim=1), 'b h w d -> b t h w d', t=self.pred_len)
         x_dec = self.dec_embedding(x_dec, x_mark_dec)
-        # x_dec = torch.randn(B, T+3, H8, W8, D8)
-        x_dec_divide8 = self.attn_dec_divide8(x_dec, x_divide8, x_divide8) + x_dec
+        x_dec_divide8 = self.downsample_dec_divide8(x_dec)
+        B, T, H8, W8, C = x_dec_divide8.shape
+
+        x_dec_divide8 = self.attn_dec_divide8(x_dec_divide8, x_divide8, x_divide8) + x_dec_divide8
         x_dec_divide4 = self.upsample_divide8(x_dec_divide8)
 
         x_dec_divide4 = self.attn_dec_divide4(x_dec_divide4, x_divide4, x_divide4) + x_dec_divide4
@@ -332,15 +341,15 @@ if __name__ == '__main__':
     configs = Configs()
     # Shape of the input tensor. It will be (T, H, W, C_in)
     B = 1
-    input_shape = (10, configs.height, configs.width, 3)
-    input_shape_mark = (10, 4)
-    output_shape = (13, configs.height, configs.width, 3)
+    input_shape = (configs.seq_len, configs.height, configs.width, 3)
+    output_shape = (configs.pred_len, configs.height, configs.width, 3)
+    # input_shape_mark = (configs.seq_len, 4)
 
     input_x = torch.randn(B, *input_shape)
-    input_x_mark = torch.ones(B, *input_shape_mark).long()
+    input_x_mark = torch.ones(B, configs.seq_len, 4).long()
 
-    dec_x = torch.randn(B, *input_shape)
-    dec_x_mark = torch.randn(B, *input_shape_mark).long()
+    dec_x = torch.randn(B, *output_shape)
+    dec_x_mark = torch.ones(B, configs.pred_len, 4).long()
     model = Model(configs=configs)
-    out = model.forward(input_x, input_x_mark, dec_x, input_x_mark)
+    out = model.forward(input_x, input_x_mark, dec_x, dec_x_mark)
     a = 1
