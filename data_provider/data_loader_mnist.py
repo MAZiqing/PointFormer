@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import codecs
-import pytorch_lightning as pl
+# import pytorch_lightning as pl
 from sklearn.model_selection import train_test_split
 from torch.utils.data import random_split, Subset, DataLoader
 from typing import Optional
@@ -61,8 +61,10 @@ class MovingMNIST(data.Dataset):
                 os.path.join(self.root, self.processed_folder, self.training_file)).unsqueeze(-1)
             all_indices = range(len(train_val_data))
             train_indices, val_indices = train_test_split(all_indices, test_size=self.val_ratio, random_state=self.seed)
-            self.data = Subset(train_val_data, train_indices)
-            self.data = Subset(train_val_data, val_indices)
+            if self.flag == 'train':
+                self.data = Subset(train_val_data, train_indices)
+            else:
+                self.data = Subset(train_val_data, val_indices)
         else:
             self.data = torch.load(
                 os.path.join(self.root, self.processed_folder, self.test_file)).unsqueeze(-1)
