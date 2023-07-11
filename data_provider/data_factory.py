@@ -1,11 +1,14 @@
 from data_provider.data_loader import Global_Temp, Global_Wind
 from data_provider.data_loader_era import EraDataset
+from data_provider.data_loader_mnist import MovingMNIST
 from torch.utils.data import DataLoader
+
 
 data_dict = {
     'Global_Temp': Global_Temp,
     'Global_Wind': Global_Wind,
-    'ERA5': EraDataset
+    'ERA5': EraDataset,
+    'moving_mnist': MovingMNIST
 }
 
 
@@ -32,7 +35,7 @@ def data_provider(args, flag):
 
     data_set = Data(
         root_path=args.root_path,
-        data_path=args.data_path,
+        # data_path=args.data_path,
         flag=flag,
         size=[args.seq_len, args.label_len, args.pred_len],
         features=args.features,

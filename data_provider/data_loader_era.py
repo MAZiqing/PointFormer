@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 
 class EraDataset(Dataset):
     def __init__(self, root_path, flag='train', size=None,
-                 features='M', data_path='china_demo.npy',
+                 features='M',
                  target='OT', scale=False, timeenc=0, freq='h'):
         # size [seq_len, label_len, pred_len]
         # info
@@ -31,10 +31,10 @@ class EraDataset(Dataset):
         self.freq = freq
 
         self.root_path = root_path
-        self.data_path = data_path
+        # self.data_path = data_path
         self.__read_data__()
 
-    def __recurrently_read_data(self, path, files):
+    def __recurrently_read_data__(self, path, files):
         npys = []
         for file in files:
             path_file = os.path.join(path, file)
@@ -51,8 +51,8 @@ class EraDataset(Dataset):
         files_data = [i for i in files if not re.match('time.*.npy', i)]
         files_data.sort()
         print('npy files to read: {}'.format(files_data))
-        self.raw_data = self.__recurrently_read_data(self.root_path, files_data)
-        self.raw_time = self.__recurrently_read_data(self.root_path, files_time)
+        self.raw_data = self.__recurrently_read_data__(self.root_path, files_data)
+        self.raw_time = self.__recurrently_read_data__(self.root_path, files_time)
 
         raw_data = self.raw_data
         raw_time = self.raw_time
