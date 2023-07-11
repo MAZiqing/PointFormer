@@ -58,7 +58,7 @@ class MovingMNIST(data.Dataset):
 
         if self.flag in ['train', 'val']:
             train_val_data = torch.load(
-                os.path.join(self.root, self.processed_folder, self.training_file)).unsqueeze(-1)
+                os.path.join(self.root, self.processed_folder, self.training_file)) #.unsqueeze(-1)
             all_indices = range(len(train_val_data))
             train_indices, val_indices = train_test_split(all_indices, test_size=self.val_ratio, random_state=self.seed)
             if self.flag == 'train':
@@ -69,7 +69,7 @@ class MovingMNIST(data.Dataset):
                 self.data = data.dataset[data.indices]
         else:
             self.data = torch.load(
-                os.path.join(self.root, self.processed_folder, self.test_file)).unsqueeze(-1)
+                os.path.join(self.root, self.processed_folder, self.test_file)) #.unsqueeze(-1)
         a = 1
 
     def __getitem__(self, index):
@@ -107,7 +107,7 @@ class MovingMNIST(data.Dataset):
         target = (target / 255.0).float()
         seq_x_mark = None
         seq_y_mark = None
-        return seq, target, seq_x_mark, seq_y_mark
+        return seq.unsqueeze(-1), target.unsqueeze(-1), seq_x_mark, seq_y_mark
 
     def __len__(self):
         return len(self.data)
