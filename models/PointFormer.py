@@ -293,6 +293,8 @@ class Model(nn.Module):
         self.attn_dec_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, neighbor_r=self.neighbor_r//2)
         self.attn_dec = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, neighbor_r=self.neighbor_r)
 
+        self.mlp_out = nn.Linear(D, configs.c_out)
+
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec,
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         B, T, H, W, C = x_enc.shape
@@ -326,6 +328,7 @@ class Model(nn.Module):
         x_dec_divide1 = self.attn_dec(x_dec_divide1, x, x) + x_dec_divide1
 
         out = x_dec_divide1
+        out = self.mlp_out(out)
         return out
 
 
@@ -336,6 +339,7 @@ if __name__ == '__main__':
         height = 32
         width = 32
         c_in = 3
+        c_out = 3
         d_model = 32
 
     configs = Configs()
@@ -352,4 +356,6 @@ if __name__ == '__main__':
     dec_x_mark = torch.ones(B, configs.pred_len, 4).long()
     model = Model(configs=configs)
     out = model.forward(input_x, input_x_mark, dec_x, dec_x_mark)
+    assert out.shape == dec_x.shape
+    print(out.shape)
     a = 1

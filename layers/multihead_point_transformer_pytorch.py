@@ -3,6 +3,7 @@ from torch import nn, einsum
 from einops import repeat, rearrange
 import numpy as np
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # helpers
 
@@ -86,7 +87,7 @@ class MultiheadPointTransformerLayer(nn.Module):
         )
 
         indices = self.init_neighbor_indices(H=H, W=W, r=neighbor_r)
-        self.indices = torch.tensor(indices)
+        self.indices = torch.tensor(indices).to(device)
 
     def init_neighbor_indices(self, H, W, r=10):
 
