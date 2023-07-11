@@ -62,9 +62,11 @@ class MovingMNIST(data.Dataset):
             all_indices = range(len(train_val_data))
             train_indices, val_indices = train_test_split(all_indices, test_size=self.val_ratio, random_state=self.seed)
             if self.flag == 'train':
-                self.data = Subset(train_val_data, train_indices)
+                data = Subset(train_val_data, train_indices)
+                self.data = data.dataset[data.indices]
             else:
-                self.data = Subset(train_val_data, val_indices)
+                data = Subset(train_val_data, val_indices)
+                self.data = data.dataset[data.indices]
         else:
             self.data = torch.load(
                 os.path.join(self.root, self.processed_folder, self.test_file)).unsqueeze(-1)
