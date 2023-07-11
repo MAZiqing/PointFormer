@@ -103,7 +103,9 @@ class MovingMNIST(data.Dataset):
             target = self.post_target_transform(target)
         seq = (seq / 255.0).float()
         target = (target / 255.0).float()
-        return seq, target
+        seq_x_mark = None
+        seq_y_mark = None
+        return seq, target, seq_x_mark, seq_y_mark
 
     def __len__(self):
         return len(self.data)
