@@ -264,8 +264,8 @@ class Model(nn.Module):
         self.neighbor_r = 10
 
         # embed
-        self.enc_embedding = DataEmbedding(H=self.H, W=self.W, c_in=self.c_in, d_model=D)
-        self.dec_embedding = DataEmbedding(H=self.H, W=self.W, c_in=self.c_in, d_model=D)
+        self.enc_embedding = DataEmbedding(configs=configs, H=self.H, W=self.W, c_in=self.c_in, d_model=D)
+        self.dec_embedding = DataEmbedding(configs=configs, H=self.H, W=self.W, c_in=self.c_in, d_model=D)
 
         self.downsample_divide2 = DownSampling3D(original_size=(T, H, W), target_size=(T, H//2, W//2),
                                                  in_channels=D, out_dim=D*2, mid_dim=D)
@@ -341,6 +341,7 @@ if __name__ == '__main__':
         c_in = 3
         c_out = 3
         d_model = 32
+        temporal_type = 'index'
 
     configs = Configs()
     # Shape of the input tensor. It will be (T, H, W, C_in)
@@ -350,10 +351,10 @@ if __name__ == '__main__':
     # input_shape_mark = (configs.seq_len, 4)
 
     input_x = torch.randn(B, *input_shape)
-    input_x_mark = torch.ones(B, configs.seq_len, 4).long()
+    input_x_mark = torch.ones(B, configs.seq_len, 1).long()
 
     dec_x = torch.randn(B, *output_shape)
-    dec_x_mark = torch.ones(B, configs.pred_len, 4).long()
+    dec_x_mark = torch.ones(B, configs.pred_len, 1).long()
     model = Model(configs=configs)
     out = model.forward(input_x, input_x_mark, dec_x, dec_x_mark)
     assert out.shape == dec_x.shape

@@ -70,6 +70,7 @@ class MovingMNIST(data.Dataset):
         else:
             self.data = torch.load(
                 os.path.join(self.root, self.processed_folder, self.test_file)) #.unsqueeze(-1)
+        print(self.data.shape)
         a = 1
 
     def __getitem__(self, index):
@@ -105,9 +106,9 @@ class MovingMNIST(data.Dataset):
             target = self.post_target_transform(target)
         seq = (seq / 255.0).float()
         target = (target / 255.0).float()
-        seq_x_mark = None
-        seq_y_mark = None
-        return seq.unsqueeze(-1), target.unsqueeze(-1), seq_x_mark, seq_y_mark
+        seq_x_mark = torch.range(0, 9).unsqueeze(-1)
+        seq_y_mark = torch.range(10, 19).unsqueeze(-1)
+        return seq, target, seq_x_mark, seq_y_mark
 
     def __len__(self):
         return len(self.data)

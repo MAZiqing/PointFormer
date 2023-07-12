@@ -112,6 +112,29 @@ class TemporalEmbedding(nn.Module):
         return hour_x + weekday_x + day_x + month_x #+ minute_x
 
 
+class IndexEmbedding(nn.Module):
+    def __init__(self, d_model, embed_type='fixed', freq='h'):
+        super(IndexEmbedding, self).__init__()
+
+        # minute_size = 4
+        index_size = 24
+        # weekday_size = 7
+        # day_size = 32
+        # month_size = 13
+
+        Embed = FixedEmbedding if embed_type == 'fixed' else nn.Embedding
+        # if freq == 't':
+        #     self.minute_embed = Embed(minute_size, d_model)
+        self.index_embed = Embed(index_size, d_model)
+
+    def forward(self, x):
+        # X = [B, T]
+        x = x.long()
+
+        index_x = self.index_embed(x[:, :, 0])
+        return index_x
+
+
 class TimeFeatureEmbedding(nn.Module):
     def __init__(self, d_model, embed_type='timeF', freq='h'):
         super(TimeFeatureEmbedding, self).__init__()
@@ -140,7 +163,7 @@ class GeoPosEmbedding(nn.Module):
 
 
 class DataEmbedding(nn.Module):
-    def __init__(self, H, W, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1):
+    def __init__(self, configs, H, W, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1):
         super(DataEmbedding, self).__init__()
         # spatial (24, 3)
 
@@ -158,13 +181,16 @@ class DataEmbedding(nn.Module):
         self.pos_embedding = GeoPosEmbedding(H=H, W=W, d_pos=d_pos)
         # temporal
         d_temporal = 8
-        self.temporal_embedding = TemporalEmbedding(d_model=d_temporal, embed_type=embed_type,
+        if configs.temporal_type == 'time':
+            self.temporal_embedding = TemporalEmbedding(d_model=d_temporal, embed_type=embed_type,
+                                                    freq=freq)
+        else:
+            self.temporal_embedding = IndexEmbedding(d_model=d_temporal, embed_type=embed_type,
                                                     freq=freq)
         # value
         self.token_embedding = TokenEmbedding(c_in=c_in, d_model=d_model-d_pos-d_temporal)
 
         self.dropout = nn.Dropout(p=dropout)
-        # others
 
     def forward(self, x, x_mark):
         # B T H W C
