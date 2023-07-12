@@ -61,6 +61,7 @@ parser.add_argument('--d_layers', type=int, default=1, help='num of decoder laye
 #                     help='whether to use distilling in encoder, using this argument means not using distilling',
 #                     default=True)
 # parser.add_argument('--dropout', type=float, default=0.05, help='dropout')
+parser.add_argument('--neighbor_r', type=int, default=8, help='num of neighbors = 3.14*r^2')
 parser.add_argument('--embed', type=str, default='timeF',
                     help='time features encoding, options:[timeF, fixed, learned]')
 parser.add_argument('--temporal_type', type=str, default='time',

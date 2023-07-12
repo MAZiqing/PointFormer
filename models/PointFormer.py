@@ -261,7 +261,7 @@ class Model(nn.Module):
         self.c_in = configs.c_in
         D = configs.d_model
         self.d_model = D
-        self.neighbor_r = 10
+        self.neighbor_r = configs.neighbor_r
 
         # embed
         self.enc_embedding = DataEmbedding(configs=configs, H=self.H, W=self.W, c_in=self.c_in, d_model=D)
