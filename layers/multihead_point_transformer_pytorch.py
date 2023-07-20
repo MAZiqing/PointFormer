@@ -86,6 +86,7 @@ class MultiheadPointTransformerLayer(nn.Module):
             nn.Conv2d(attn_inner_dim, inner_dim, 1, groups=heads),
         )
 
+        neighbor_r = max(neighbor_r, 2)
         indices = self.init_neighbor_indices(H=H, W=W, r=neighbor_r)
         self.indices = torch.tensor(indices).to(device)
 
