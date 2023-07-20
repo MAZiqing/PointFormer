@@ -16,7 +16,7 @@ from layers.Corrformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLaye
     my_Layernorm, series_decomp
 
 from layers.multihead_point_transformer_pytorch import MultiheadPointTransformerLayer
-from models.SVDFormer import SVDTransformer
+from models.SVDFormer import SVDTransformer, FullAttention, GlobalSVD
 
 
 
@@ -209,7 +209,9 @@ class PointAttentionLayer(nn.Module):
         self.point_transformer = MultiheadPointTransformerLayer(H=H, W=W, dim=in_dim, pos_mlp_hidden_dim=8,
                                                                 attn_mlp_hidden_mult=4, neighbor_r=neighbor_r)
 
-        self.svd_former = SVDTransformer(in_dim=in_dim, hid_dim=hid_dim, out_dim=out_dim)
+        # self.svd_former = SVDTransformer(in_dim=in_dim, hid_dim=hid_dim, out_dim=out_dim)
+        self.global_svd = GlobalSVD(H=H, W=W, dim=in_dim)
+        self.full_attention = FullAttention()
 
         self.norm_q = nn.LayerNorm(in_dim * 1)
         self.norm_kv = nn.LayerNorm(in_dim * 2)
@@ -238,8 +240,11 @@ class PointAttentionLayer(nn.Module):
         q = self.norm_q(q_out)
         k, v = self.norm_kv(torch.cat([k, v], dim=-1)).chunk(2, dim=-1)
 
-        out = self.svd_former(q, k, v)
-
+        q = self.global_svd(q)
+        # out = self.svd_former(q, k, v)
+        q, k, v = map(lambda t: rearrange(t, 'b t h w c -> (b h w) t c'), (q, k, v))
+        out = self.full_attention(q, k, v)
+        out = rearrange(out, '(b h w) t c -> b t h w c', b=B, h=H, w=W)
         return out
 
 
@@ -286,11 +291,11 @@ class Model(nn.Module):
         self.upsample_divide8 = Upsample3DLayer(dim=D*8, out_dim=D*4, target_size=(K, H//4, W//4))
 
         self.attn = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, neighbor_r=self.neighbor_r)
-        self.attn_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, neighbor_r=self.neighbor_r//2)
-        self.attn_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, neighbor_r=self.neighbor_r//4)
-        self.attn_dec_divide8 = PointAttentionLayer(H=H//8, W=W//8, in_dim=D*8, hid_dim=D*8, out_dim=D*8, neighbor_r=self.neighbor_r//8)
-        self.attn_dec_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, neighbor_r=self.neighbor_r//4)
-        self.attn_dec_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, neighbor_r=self.neighbor_r//2)
+        self.attn_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, neighbor_r=self.neighbor_r//1.4)
+        self.attn_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, neighbor_r=self.neighbor_r//2)
+        self.attn_dec_divide8 = PointAttentionLayer(H=H//8, W=W//8, in_dim=D*8, hid_dim=D*8, out_dim=D*8, neighbor_r=self.neighbor_r//2.8)
+        self.attn_dec_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, neighbor_r=self.neighbor_r//2)
+        self.attn_dec_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, neighbor_r=self.neighbor_r//1.4)
         self.attn_dec = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, neighbor_r=self.neighbor_r)
 
         self.mlp_out = nn.Linear(D, configs.c_out)
@@ -342,6 +347,7 @@ if __name__ == '__main__':
         c_out = 3
         d_model = 32
         temporal_type = 'index'
+        neighbor_r = 6
 
     configs = Configs()
     # Shape of the input tensor. It will be (T, H, W, C_in)
@@ -357,6 +363,15 @@ if __name__ == '__main__':
     dec_x_mark = torch.ones(B, configs.pred_len, 1).long()
     model = Model(configs=configs)
     out = model.forward(input_x, input_x_mark, dec_x, dec_x_mark)
+
+    target = torch.randn(out.shape)
+    criterion = nn.MSELoss()
+    loss = criterion(out, target)
+    grad1 = model.enc_embedding.token_embedding.embed.weight.grad
+    grad11 = model.mlp_out.weight.grad
+    loss.backward()
+    grad2 = model.enc_embedding.token_embedding.embed.weight.grad
+    grad22 = model.mlp_out.weight.grad
     assert out.shape == dec_x.shape
     print(out.shape)
     a = 1

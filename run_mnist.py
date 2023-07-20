@@ -33,9 +33,9 @@ parser.add_argument('--freq', type=str, default='h',
 parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
 
 # forecasting task
-parser.add_argument('--seq_len', type=int, default=4, help='input sequence length')
+parser.add_argument('--seq_len', type=int, default=10, help='input sequence length')
 parser.add_argument('--label_len', type=int, default=0, help='start token length')
-parser.add_argument('--pred_len', type=int, default=1, help='prediction sequence length')
+parser.add_argument('--pred_len', type=int, default=10, help='prediction sequence length')
 
 # model define
 parser.add_argument('--consistency_lambda', type=float, default=1.0, help='consistency loss weight')
@@ -75,7 +75,7 @@ parser.add_argument('--temporal_type', type=str, default='index',
 parser.add_argument('--num_workers', type=int, default=10, help='data loader num workers')
 parser.add_argument('--itr', type=int, default=2, help='experiments times')
 parser.add_argument('--train_epochs', type=int, default=1000, help='train epochs')
-parser.add_argument('--batch_size', type=int, default=32, help='batch size of train input data')
+parser.add_argument('--batch_size', type=int, default=1, help='batch size of train input data')
 parser.add_argument('--patience', type=int, default=10, help='early stopping patience')
 parser.add_argument('--learning_rate', type=float, default=0.0001, help='optimizer learning rate')
 parser.add_argument('--des', type=str, default='test', help='exp description')

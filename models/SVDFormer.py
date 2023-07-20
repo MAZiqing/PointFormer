@@ -6,7 +6,7 @@
 import torch
 from torch import nn, einsum
 from einops import repeat, rearrange
-
+from math import sqrt
 
 # classes
 
@@ -70,9 +70,9 @@ class SVDTransformer(nn.Module):
         B, T, H, W, D = q.shape
         q, k, v = map(lambda t: rearrange(t, 'b t h w c -> b (h w) (t c)'), (q, k, v))
 
-        Uq, dq, Vq = torch.linalg.svd(q)
-        Uk, dk, Vk = torch.linalg.svd(k)
-        Uv, dv, Vv = torch.linalg.svd(v)
+        Uq, dq, Vq = torch.linalg.svd(torch.nan_to_num(q, nan=0.0))
+        Uk, dk, Vk = torch.linalg.svd(torch.nan_to_num(k, nan=0.0))
+        Uv, dv, Vv = torch.linalg.svd(torch.nan_to_num(v, nan=0.0))
 
         mode = min(self.mode, H*W, min(T, K)*D)
         Uout = self.attn(Uq[..., :mode], Uk[..., :mode], Uv[..., :mode])
@@ -92,89 +92,61 @@ class SVDTransformer(nn.Module):
         return out
 
 
+class GlobalSVD(nn.Module):
+    def __init__(
+            self,
+            *,
+            H=32,
+            W=32,
+            dim=32,
+            mode=8
+    ):
+        super().__init__()
+        # self.heads = heads
+        self.w = nn.Parameter(torch.randn(dim, H, W))
+        self.mode = mode
 
-        # n, h, num_neighbors = x.shape[1], self.heads, self.num_neighbors
-        #
-        # # get queries, keys, values
-        #
-        # q, k, v = self.to_qkv(x).chunk(3, dim=-1)
-        #
-        # # split out heads
-        #
-        # q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
-        #
-        # # calculate relative positional embeddings
-        #
-        # rel_pos = rearrange(pos, 'b i c -> b i 1 c') - rearrange(pos, 'b j c -> b 1 j c')
-        # rel_pos_emb = self.pos_mlp(rel_pos)
-        #
-        # # split out heads for rel pos emb
-        #
-        # rel_pos_emb = rearrange(rel_pos_emb, 'b i j (h d) -> b h i j d', h=h)
-        #
-        # # use subtraction of queries to keys. i suppose this is a better inductive bias for point clouds than dot product
-        #
-        # qk_rel = rearrange(q, 'b h i d -> b h i 1 d') - rearrange(k, 'b h j d -> b h 1 j d')
-        #
-        # # prepare mask
-        #
-        # if exists(mask):
-        #     mask = rearrange(mask, 'b i -> b i 1') * rearrange(mask, 'b j -> b 1 j')
-        #
-        # # expand values
-        #
-        # v = repeat(v, 'b h j d -> b h i j d', i=n)
-        #
-        # # determine k nearest neighbors for each point, if specified
-        #
-        # if exists(num_neighbors) and num_neighbors < n:
-        #     rel_dist = rel_pos.norm(dim=-1)
-        #
-        #     if exists(mask):
-        #         mask_value = max_value(rel_dist)
-        #         rel_dist.masked_fill_(~mask, mask_value)
-        #
-        #     dist, indices = rel_dist.topk(num_neighbors, largest=False)
-        #
-        #     indices_with_heads = repeat(indices, 'b i j -> b h i j', h=h)
-        #
-        #     v = batched_index_select(v, indices_with_heads, dim=3)
-        #     qk_rel = batched_index_select(qk_rel, indices_with_heads, dim=3)
-        #     rel_pos_emb = batched_index_select(rel_pos_emb, indices_with_heads, dim=3)
-        #
-        #     if exists(mask):
-        #         mask = batched_index_select(mask, indices, dim=2)
-        #
-        # # add relative positional embeddings to value
-        #
-        # v = v + rel_pos_emb
-        #
-        # # use attention mlp, making sure to add relative positional embedding first
-        #
-        # attn_mlp_input = qk_rel + rel_pos_emb
-        # attn_mlp_input = rearrange(attn_mlp_input, 'b h i j d -> b (h d) i j')
-        #
-        # sim = self.attn_mlp(attn_mlp_input)
-        #
-        # # masking
-        #
-        # if exists(mask):
-        #     mask_value = -max_value(sim)
-        #     mask = rearrange(mask, 'b i j -> b 1 i j')
-        #     sim.masked_fill_(~mask, mask_value)
-        #
-        # # attention
-        #
-        # attn = sim.softmax(dim=-2)
-        #
-        # # aggregate
-        #
-        # v = rearrange(v, 'b h i j d -> b i j (h d)')
-        # agg = einsum('b d i j, b i j d -> b i d', attn, v)
-        #
-        # # combine heads
-        #
-        # return self.to_out(agg)
+    def forward(self, x):
+        B, T, H, W, C = x.shape
+        mode = self.mode
+        x = rearrange(x, 'b t h w c -> b t c h w')
+
+        Uq, dq, Vq = torch.linalg.svd(x)
+        Uw, dw, Vw = torch.linalg.svd(self.w)
+
+        U = torch.einsum('b t c h m, c h m -> b t c h m', Uq[..., :mode], Uw[..., :mode])
+        d = torch.einsum('b t c m, c m -> b t c m', dq[..., :mode], dw[..., :mode])
+        V = torch.einsum('b t c m w, c m w -> b t c m w', Vq[..., :mode, :], Vw[..., :mode, :])
+
+        out = torch.einsum('b t c h m, b t c m -> b t c h m', U, d)
+        out = torch.einsum('b t c h m, b t c m w -> b t h w c', out, V)
+
+        return out
+
+
+class FullAttention(nn.Module):
+    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
+        super(FullAttention, self).__init__()
+        self.scale = scale
+        self.mask_flag = mask_flag
+        self.output_attention = output_attention
+        self.dropout = nn.Dropout(attention_dropout)
+
+    def forward(self, queries, keys, values, attn_mask=None):
+        B, L, E = queries.shape
+        _, S, _ = values.shape
+        scale = self.scale or 1. / sqrt(E)
+
+        scores = torch.einsum("ble,bse->bls", queries, keys)
+
+        # if self.mask_flag:
+        #     if attn_mask is None:
+        #         attn_mask = TriangularCausalMask(B, L, device=queries.device)
+        #     scores.masked_fill_(attn_mask.mask, -np.inf)
+
+        A = self.dropout(torch.softmax(scale * scores, dim=-1))
+        V = torch.einsum("bls,bsd->bld", A, values)
+        return V
 
 
 if __name__ == '__main__':
