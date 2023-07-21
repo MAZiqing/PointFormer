@@ -35,7 +35,7 @@ parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='l
 # forecasting task
 parser.add_argument('--seq_len', type=int, default=10, help='input sequence length')
 parser.add_argument('--label_len', type=int, default=0, help='start token length')
-parser.add_argument('--pred_len', type=int, default=10, help='prediction sequence length')
+parser.add_argument('--pred_len', type=int, default=3, help='prediction sequence length')
 
 # model define
 parser.add_argument('--consistency_lambda', type=float, default=1.0, help='consistency loss weight')

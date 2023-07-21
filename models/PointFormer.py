@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import repeat, rearrange
+from torch import optim
 
 from layers.Embed_PointFormer import DataEmbedding
 from layers.Causal_Conv import CausalConv
@@ -316,7 +317,7 @@ class Model(nn.Module):
         x_divide8 = self.downsample_divide8(x_divide4)
 
         B, T, H8, W8, D8 = x_divide8.shape
-        x_dec = repeat(x_enc.clone().detach().mean(dim=1), 'b h w d -> b t h w d', t=self.pred_len)
+        # x_dec = repeat(x_enc.clone().detach().mean(dim=1), 'b h w d -> b t h w d', t=self.pred_len)
         x_dec = self.dec_embedding(x_dec, x_mark_dec)
         x_dec_divide8 = self.downsample_dec_divide8(x_dec)
         B, T, H8, W8, C = x_dec_divide8.shape
@@ -349,29 +350,37 @@ if __name__ == '__main__':
         temporal_type = 'index'
         neighbor_r = 6
 
+
     configs = Configs()
-    # Shape of the input tensor. It will be (T, H, W, C_in)
-    B = 1
-    input_shape = (configs.seq_len, configs.height, configs.width, 3)
-    output_shape = (configs.pred_len, configs.height, configs.width, 3)
-    # input_shape_mark = (configs.seq_len, 4)
-
-    input_x = torch.randn(B, *input_shape)
-    input_x_mark = torch.ones(B, configs.seq_len, 1).long()
-
-    dec_x = torch.randn(B, *output_shape)
-    dec_x_mark = torch.ones(B, configs.pred_len, 1).long()
     model = Model(configs=configs)
-    out = model.forward(input_x, input_x_mark, dec_x, dec_x_mark)
+    model_optim = optim.Adam(model.parameters(), lr=0.1)
+    for i in range(0, 10):
 
-    target = torch.randn(out.shape)
-    criterion = nn.MSELoss()
-    loss = criterion(out, target)
-    grad1 = model.enc_embedding.token_embedding.embed.weight.grad
-    grad11 = model.mlp_out.weight.grad
-    loss.backward()
-    grad2 = model.enc_embedding.token_embedding.embed.weight.grad
-    grad22 = model.mlp_out.weight.grad
-    assert out.shape == dec_x.shape
-    print(out.shape)
+    # Shape of the input tensor. It will be (T, H, W, C_in)
+        B = 1
+        input_shape = (configs.seq_len, configs.height, configs.width, 3)
+        output_shape = (configs.pred_len, configs.height, configs.width, 3)
+        # input_shape_mark = (configs.seq_len, 4)
+
+        input_x = torch.randn(B, *input_shape)
+        input_x[:, :, :, :5] = 0
+        input_x_mark = torch.ones(B, configs.seq_len, 1).long()
+
+        dec_x = torch.randn(B, *output_shape)
+        dec_x_mark = torch.ones(B, configs.pred_len, 1).long()
+
+        out = model.forward(input_x, input_x_mark, dec_x, dec_x_mark)
+
+        target = torch.randn(out.shape)
+        criterion = nn.MSELoss()
+        loss = criterion(out, target)
+        grad1 = model.enc_embedding.token_embedding.embed.weight.grad
+        grad11 = model.mlp_out.weight.grad
+        loss.backward()
+        model_optim.step()
+        grad2 = model.enc_embedding.token_embedding.embed.weight.grad
+        grad22 = model.mlp_out.weight.grad
+        print(grad2.mean())
+        assert out.shape == dec_x.shape
+        print(out.shape)
     a = 1
