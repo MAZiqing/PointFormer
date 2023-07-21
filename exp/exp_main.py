@@ -48,40 +48,38 @@ class Exp_Main(Exp_Basic):
         criterion = nn.MSELoss()
         return criterion
 
+    def train_vali_test(self, batch_x, batch_y, batch_x_mark, batch_y_mark):
+        batch_x = batch_x.float().to(self.device)
+        batch_y = batch_y.float()
+
+        batch_x_mark = batch_x_mark.float().to(self.device)
+        batch_y_mark = batch_y_mark.float().to(self.device)
+
+        # decoder input
+        dec_inp = repeat(batch_x.mean(dim=1), 'b h w d -> b t h w d', t=self.args.pred_len)
+
+        if self.args.use_amp:
+            with torch.cuda.amp.autocast():
+                outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+        else:
+            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+
+        # metric
+        f_dim = -1 if self.args.features == 'MS' else 0
+
+        batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
+
+        return outputs, batch_y
+
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
         self.model.eval()
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(vali_loader):
-                batch_x = batch_x.float().to(self.device)
-                batch_y = batch_y.float()
-
-                batch_x_mark = batch_x_mark.float().to(self.device)
-                batch_y_mark = batch_y_mark.float().to(self.device)
-
-                # decoder input
-                dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
-                dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
-                # encoder - decoder
-                if self.args.use_amp:
-                    with torch.cuda.amp.autocast():
-                        # if self.args.output_attention or self.args.model.count('Consistency') > 0:
-                        #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                        # else:
-                        outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-                else:
-                    # if self.args.output_attention or self.args.model.count('Consistency') > 0:
-                    #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                    # else:
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-                f_dim = -1 if self.args.features == 'MS' else 0
-                batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
-
-                pred = outputs.detach().cpu()
-                true = batch_y.detach().cpu()
-
+                outputs, batch_y = self.train_vali_test(batch_x, batch_y, batch_x_mark, batch_y_mark)
+                pred = outputs.detach().cpu().numpy()
+                true = batch_y.detach().cpu().numpy()
                 loss = criterion(pred, true)
-
                 total_loss.append(loss)
         total_loss = np.average(total_loss)
         self.model.train()
@@ -115,43 +113,13 @@ class Exp_Main(Exp_Basic):
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
                 iter_count += 1
                 model_optim.zero_grad()
-                batch_x = batch_x.float().to(self.device)
-
-                batch_y = batch_y.float().to(self.device)
-                batch_x_mark = batch_x_mark.float().to(self.device)
-                batch_y_mark = batch_y_mark.float().to(self.device)
-
-                # decoder input
-                dec_inp = repeat(batch_x.mean(dim=1), 'b h w d -> b t h w d', t=self.pred_len)
-                # dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
-                # dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
-
                 if i == 0:
-                    print('input shape: batch_x={}, batch_x_mark={}, dec_inp={}, batch_y_mark={}'.format(
-                        batch_x.shape, batch_x_mark.shape, dec_inp.shape, batch_y_mark.shape
+                    print('input shape: batch_x={}, batch_x_mark={}, batch_x_mark={}, batch_y_mark={}'.format(
+                        batch_x.shape, batch_x_mark.shape, batch_x_mark.shape, batch_y_mark.shape
                     ))
-                # encoder - decoder
-                if self.args.use_amp:
-                    with torch.cuda.amp.autocast():
-                        # if self.args.output_attention:
-                        #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                        # else:
-                        outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
 
-                        f_dim = -1 if self.args.features == 'MS' else 0
-                        batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
-                        loss = criterion(outputs, batch_y)
-                        train_loss.append(loss.item())
-                else:
-                    # if self.args.output_attention:
-                    #     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                    # else:
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-
-                    f_dim = -1 if self.args.features == 'MS' else 0
-                    batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
-                    loss = criterion(outputs, batch_y)
-                    train_loss.append(loss.item())
+                outputs, batch_y = self.train_vali_test(batch_x, batch_y, batch_x_mark, batch_y_mark)
+                loss = criterion(outputs, batch_y)
 
                 if (i + 1) % 20 == 0:
                     print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
@@ -209,26 +177,7 @@ class Exp_Main(Exp_Basic):
 
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
-                batch_x = batch_x.float().to(self.device)
-                batch_y = batch_y.float().to(self.device)
-
-                batch_x_mark = batch_x_mark.float().to(self.device)
-                batch_y_mark = batch_y_mark.float().to(self.device)
-
-                # decoder input
-                dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
-                dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
-                # encoder - decoder
-                if self.args.use_amp:
-                    with torch.cuda.amp.autocast():
-                        outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-                else:
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-
-                # metric
-                f_dim = -1 if self.args.features == 'MS' else 0
-
-                batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
+                outputs, batch_y = self.train_vali_test(batch_x, batch_y, batch_x_mark, batch_y_mark)
                 pred = outputs.detach().cpu().numpy()
                 true = batch_y.detach().cpu().numpy()
                 if self.args.test_features == 'S_station':
