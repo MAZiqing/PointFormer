@@ -72,12 +72,27 @@ class StandardScaler():
         return (data * self.std) + self.mean
 
 
-def visual(true, preds=None, name='./pic/test.pdf'):
-    plt.figure(figsize=(10, 6))
-    plt.plot(true, label='GroundTruth', color='black', linewidth=4, alpha=0.6)
-    if preds is not None:
-        plt.plot(preds, label='Prediction', color='orange', linewidth=4)
-    plt.plot(true[:48], label='GroundTruth', color='black', linewidth=4)
-    # plt.legend()
-    plt.grid()
+# def visual(true, preds=None, name='./pic/test.pdf'):
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(true, label='GroundTruth', color='black', linewidth=4, alpha=0.6)
+#     if preds is not None:
+#         plt.plot(preds, label='Prediction', color='orange', linewidth=4)
+#     plt.plot(true[:48], label='GroundTruth', color='black', linewidth=4)
+#     # plt.legend()
+#     plt.grid()
+#     plt.savefig(name, bbox_inches='tight')
+
+
+def visual(inp, true, pred, name='./pic/test.pdf'):
+    plt.figure(figsize=(10, 4))
+    n = inp.shape[0]
+    for i in range(n):
+        plt.subplot(3, n, i+1)
+        plt.imshow(inp[i, ..., 0])
+    for i in range(n):
+        plt.subplot(3, n, n+i+1)
+        plt.imshow(true[i, ..., 0])
+    for i in range(n):
+        plt.subplot(3, n, 2*n+i+1)
+        plt.imshow(pred[i, ..., 0])
     plt.savefig(name, bbox_inches='tight')
