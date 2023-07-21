@@ -254,6 +254,7 @@ class PointAttentionLayer(nn.Module):
 class Model(nn.Module):
     def __init__(self, configs):
         super(Model, self).__init__()
+        self.verbose = configs.verbose
         T = configs.seq_len
         self.seq_len = T
         # self.label_len = configs.label_len
@@ -306,6 +307,12 @@ class Model(nn.Module):
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec,
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         B, T, H, W, C = x_enc.shape
+        if self.verbose:
+            a = x_enc
+            g = self.enc_embedding.enc_embedding.token_embedding.embed.weight.grad
+            print('x_enc status: mean={}, max={}, min={}'.format(a.mean(), a.max(), a.min()))
+            if g is not None:
+                print('enc_embedding grad: mean={}, max={}, min={}'.format(g.mean(), g.max(), g.min()))
 
         x = self.enc_embedding(x_enc, x_mark_enc)
 
@@ -337,6 +344,13 @@ class Model(nn.Module):
 
         out = x_dec_divide1
         out = self.mlp_out(out)
+        if self.verbose:
+            a = out
+            g = self.mlp_out.weight.grad
+            print('out status: mean={}, max={}, min={}'.format(a.mean(), a.max(), a.min()))
+            if g is not None:
+                print('out_mlp grad: mean={}, max={}, min={}'.format(g.mean(), g.max(), g.min()))
+
         return out
 
 

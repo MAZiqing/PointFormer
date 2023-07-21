@@ -126,7 +126,9 @@ class Exp_Main(Exp_Basic):
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * (train_steps // self.args.batch_size - i)
                     left_iter = (train_steps // self.args.batch_size - i)
-                    print('\tspeed: {:.4f}s/iter; left iter: {:.4f} iter'.format(speed, left_iter))
+                    print('\tspeed: {:.4f}s/iter; left iter: {:.4f} iter; left minutes: {:.4f}'.format(speed,
+                                                                                                       left_iter,
+                                                                                                       left_time // 60))
                     iter_count = 0
                     time_now = time.time()
 

@@ -31,11 +31,12 @@ parser.add_argument('--target', type=int, default=0, help='target feature in S o
 parser.add_argument('--freq', type=str, default='h',
                     help='freq for time features encoding, options:[s:secondly, t:minutely, h:hourly, d:daily, b:business days, w:weekly, m:monthly], you can also use more detailed freq like 15min or 3h')
 parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
+parser.add_argument('--verbose', type=int, default=0, help='location of model checkpoints')
 
 # forecasting task
 parser.add_argument('--seq_len', type=int, default=10, help='input sequence length')
 parser.add_argument('--label_len', type=int, default=0, help='start token length')
-parser.add_argument('--pred_len', type=int, default=3, help='prediction sequence length')
+parser.add_argument('--pred_len', type=int, default=10, help='prediction sequence length')
 
 # model define
 parser.add_argument('--consistency_lambda', type=float, default=1.0, help='consistency loss weight')
@@ -61,7 +62,7 @@ parser.add_argument('--d_layers', type=int, default=1, help='num of decoder laye
 #                     help='whether to use distilling in encoder, using this argument means not using distilling',
 #                     default=True)
 # parser.add_argument('--dropout', type=float, default=0.05, help='dropout')
-parser.add_argument('--neighbor_r', type=int, default=8, help='num of neighbors = 3.14*r^2')
+parser.add_argument('--neighbor_r', type=int, default=5, help='num of neighbors = 3.14*r^2')
 parser.add_argument('--embed', type=str, default='timeF',
                     help='time features encoding, options:[timeF, fixed, learned]')
 parser.add_argument('--temporal_type', type=str, default='index',
