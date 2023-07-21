@@ -2,7 +2,7 @@ from data_provider.data_loader import Global_Temp, Global_Wind
 from data_provider.data_loader_era import EraDataset
 from data_provider.data_loader_mnist import MovingMNIST
 from torch.utils.data import DataLoader
-
+import torch
 
 data_dict = {
     'Global_Temp': Global_Temp,
@@ -44,10 +44,14 @@ def data_provider(args, flag):
         freq=freq
     )
     # print(flag, len(data_set))
+    if torch.cuda.is_available():
+        num_worker = args.num_workers
+    else:
+        num_worker = 0
     data_loader = DataLoader(
         data_set,
         batch_size=batch_size,
         shuffle=shuffle_flag,
-        num_workers=args.num_workers,
+        num_workers=num_worker,
         drop_last=drop_last)
     return data_set, data_loader

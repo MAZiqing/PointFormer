@@ -50,7 +50,7 @@ class Exp_Main(Exp_Basic):
 
     def train_vali_test(self, batch_x, batch_y, batch_x_mark, batch_y_mark):
         batch_x = batch_x.float().to(self.device)
-        batch_y = batch_y.float()
+        batch_y = batch_y.float().to(self.device)
 
         batch_x_mark = batch_x_mark.float().to(self.device)
         batch_y_mark = batch_y_mark.float().to(self.device)
@@ -67,7 +67,7 @@ class Exp_Main(Exp_Basic):
         # metric
         f_dim = -1 if self.args.features == 'MS' else 0
 
-        batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
+        # batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
 
         return outputs, batch_y
 
@@ -139,6 +139,7 @@ class Exp_Main(Exp_Basic):
                 else:
                     loss.backward()
                     model_optim.step()
+                a = 1
             # torch.save(self.model.state_dict(), path + '/' + 'checkpoint.pth')
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
