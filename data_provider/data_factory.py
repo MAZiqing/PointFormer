@@ -43,11 +43,12 @@ def data_provider(args, flag):
         timeenc=timeenc,
         freq=freq
     )
-    # print(flag, len(data_set))
+    # mac book cpu only allows num_workers=0
     if torch.cuda.is_available():
         num_worker = args.num_workers
     else:
         num_worker = 0
+
     data_loader = DataLoader(
         data_set,
         batch_size=batch_size,

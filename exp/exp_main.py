@@ -77,8 +77,8 @@ class Exp_Main(Exp_Basic):
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(vali_loader):
                 outputs, batch_y = self.train_vali_test(batch_x, batch_y, batch_x_mark, batch_y_mark)
-                pred = outputs.detach().cpu().numpy()
-                true = batch_y.detach().cpu().numpy()
+                pred = outputs.detach().cpu()
+                true = batch_y.detach().cpu()
                 loss = criterion(pred, true)
                 total_loss.append(loss)
         total_loss = np.average(total_loss)
@@ -111,6 +111,7 @@ class Exp_Main(Exp_Basic):
             self.model.train()
             epoch_time = time.time()
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
+                break
                 iter_count += 1
                 model_optim.zero_grad()
                 if i == 0:
@@ -126,7 +127,7 @@ class Exp_Main(Exp_Basic):
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * (train_steps // self.args.batch_size - i)
                     left_iter = (train_steps // self.args.batch_size - i)
-                    print('\tspeed: {:.4f}s/iter; left iter: {:.4f} iter; left minutes: {:.4f}'.format(speed,
+                    print('\tspeed: {:.4f}s/iter; left iter: {:.4f} iter; left minutes: {:.1f}'.format(speed,
                                                                                                        left_iter,
                                                                                                        left_time // 60))
                     iter_count = 0
@@ -183,10 +184,9 @@ class Exp_Main(Exp_Basic):
                 outputs, batch_y = self.train_vali_test(batch_x, batch_y, batch_x_mark, batch_y_mark)
                 pred = outputs.detach().cpu().numpy()
                 true = batch_y.detach().cpu().numpy()
-                if self.args.test_features == 'S_station':
-                    pred = pred[:, :, self.args.target:(self.args.target + 1)]
-                    true = true[:, :, self.args.target:(self.args.target + 1)]
-
+                # if self.args.test_features == 'S_station':
+                #     pred = pred[:, :, self.args.target:(self.args.target + 1)]
+                #     true = true[:, :, self.args.target:(self.args.target + 1)]
                 tmp_mae, tmp_mse = simple_metric(pred, true)
                 mse += tmp_mse
                 mae += tmp_mae
