@@ -144,8 +144,8 @@ class Exp_Main():
                 loss = criterion(outputs, batch_y)
 
                 if (i + 1) % self.args.print_every == 0:
-                    print("\t [time: {}] | iters: {0}, epoch: {1} | loss: {2:.7f}".format(
-                        datetime.now(),
+                    print("\t [time: {}] | iters: {}, epoch: {} | loss: {:.7f}".format(
+                        str(datetime.now()),
                         i + 1,
                         epoch + 1,
                         loss.item()))
