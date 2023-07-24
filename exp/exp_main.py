@@ -174,13 +174,13 @@ class Exp_Main():
                     self.logger.info("\t | iters: {}/{}, epoch: {} | loss: {:.7f} | total_loss {:.3f}".format(
                         # str(datetime.now()),
                         i + 1,
-                        train_steps // self.args.batch_size,
+                        train_steps,
                         epoch + 1,
                         loss.item(),
                         np.average(train_loss)))
                     speed = (time.time() - time_now) / iter_count
-                    left_time = speed * (train_steps // self.args.batch_size - i)
-                    left_iter = (train_steps // self.args.batch_size - i)
+                    left_time = speed * (train_steps - i)
+                    left_iter = (train_steps - i)
                     self.logger.info('\tspeed: {:.4f}s/iter; left iter: {:.4f} iter; left minutes: {:.1f}'.format(speed,
                                                                                                        left_iter,
                                                                                                        left_time // 60))
