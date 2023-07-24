@@ -108,7 +108,10 @@ class Exp_Main():
 
         return outputs, batch_y
 
-    def vali(self, vali_data, vali_loader, criterion):
+    def vali(self, vali_data, vali_loader, criterion, setting):
+        folder_path = './valid_results/' + setting + '/'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
         total_loss = []
         self.model.eval()
         with torch.no_grad():
@@ -119,6 +122,11 @@ class Exp_Main():
                 true = batch_y.detach().cpu()
                 loss = criterion(pred, true)
                 total_loss.append(loss)
+                if i % 50 == 0:
+                    inp = batch_x.detach().cpu().numpy()
+                # gt = np.concatenate((input[0], true[0]), axis=0)
+                # pd = np.concatenate((input[0], pred[0]), axis=0)
+                    visual(inp[0], true[0].numpy(), pred[0].numpy(), os.path.join(folder_path, str(i) + '.pdf'))
         total_loss = np.average(total_loss)
         self.model.train()
         return total_loss
@@ -159,13 +167,16 @@ class Exp_Main():
 
                 outputs, batch_y = self.train_vali_test(batch_x, batch_y, batch_x_mark, batch_y_mark)
                 loss = criterion(outputs, batch_y)
+                train_loss.append(loss.item())
 
                 if (i + 1) % self.args.print_every == 0:
-                    self.logger.info("\t [time: {}] | iters: {}, epoch: {} | loss: {:.7f}".format(
-                        str(datetime.now()),
+                    self.logger.info("\t | iters: {}/{}, epoch: {} | loss: {:.7f} | total_loss {:.3f}".format(
+                        # str(datetime.now()),
                         i + 1,
+                        train_steps // self.args.batch_size,
                         epoch + 1,
-                        loss.item()))
+                        loss.item(),
+                        np.average(train_loss)))
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * (train_steps // self.args.batch_size - i)
                     left_iter = (train_steps // self.args.batch_size - i)
@@ -186,8 +197,8 @@ class Exp_Main():
             # torch.save(self.model.state_dict(), path + '/' + 'checkpoint.pth')
             self.logger.info("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
-            vali_loss = self.vali(vali_data, vali_loader, criterion)
-            test_loss = self.vali(test_data, test_loader, criterion)
+            vali_loss = self.vali(vali_data, vali_loader, criterion, setting=setting)
+            test_loss = self.vali(test_data, test_loader, criterion, setting=setting)
 
             self.logger.info("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                 epoch + 1, train_steps, train_loss, vali_loss, test_loss))
@@ -241,7 +252,7 @@ class Exp_Main():
                     # gt = np.concatenate((input[0], true[0]), axis=0)
                     # pd = np.concatenate((input[0], pred[0]), axis=0)
                     visual(input[0], true[0], pred[0], os.path.join(folder_path, str(i) + '.pdf'))
-                if i % 10 == 0:
+                if i % 30 == 0:
                     self.logger.info("batch: " + str(i))
 
         mse = mse / float(batch_num)
