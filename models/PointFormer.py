@@ -255,6 +255,7 @@ class PointAttentionLayer(nn.Module):
 class Model(nn.Module):
     def __init__(self, configs):
         super(Model, self).__init__()
+        self.device = configs.device
         self.verbose = configs.verbose
         T = configs.seq_len
         self.seq_len = T
