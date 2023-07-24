@@ -210,7 +210,8 @@ class PointAttentionLayer(nn.Module):
     def __init__(self, *, H, W, in_dim, hid_dim, out_dim, neighbor_r=10):
         super(PointAttentionLayer, self).__init__()
         self.point_transformer = MultiheadPointTransformerLayer(H=H, W=W, dim=in_dim, pos_mlp_hidden_dim=8,
-                                                                attn_mlp_hidden_mult=4, neighbor_r=neighbor_r)
+                                                                attn_mlp_hidden_mult=4, neighbor_r=neighbor_r,
+                                                                device=self.device)
 
         # self.svd_former = SVDTransformer(in_dim=in_dim, hid_dim=hid_dim, out_dim=out_dim)
         self.global_svd = GlobalSVD(H=H, W=W, dim=in_dim)

@@ -1,5 +1,5 @@
 from data_provider.data_factory import data_provider
-from exp.exp_basic import Exp_Basic
+# from exp.exp_basic import Exp_Basic
 from models import Corrformer
 from models import PointFormer
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 from einops import repeat, rearrange
+from datetime import datetime
 
 import os
 import time
@@ -21,15 +22,33 @@ import numpy as np
 warnings.filterwarnings('ignore')
 
 
-class Exp_Main(Exp_Basic):
+class Exp_Main():
     def __init__(self, args):
-        super(Exp_Main, self).__init__(args)
+        # super(Exp_Main, self).__init__(args)
+        self.args = args
+        self.device = self._acquire_device()
+        self.model = self._build_model().to(self.device)
+
+    def _acquire_device(self):
+        if self.args.use_gpu:
+            if self.args.use_multi_gpu:
+                os.environ["CUDA_VISIBLE_DEVICES"] = str(self.args.devices)
+                device = torch.device('cuda:{}'.format(self.args.devices))
+            else:
+                os.environ["CUDA_VISIBLE_DEVICES"] = str(self.args.gpu)
+                device = torch.device('cuda:{}'.format(self.args.gpu))
+            print('Use GPU: 【{}】'.format(device))
+        else:
+            device = torch.device('cpu')
+            print('Use CPU')
+        return device
 
     def _build_model(self):
         model_dict = {
             'Corrformer': Corrformer,
             'PointFormer': PointFormer,
         }
+        self.args.device = self.device
         model = model_dict[self.args.model].Model(self.args).float()
 
         if self.args.use_multi_gpu and self.args.use_gpu:
@@ -123,8 +142,10 @@ class Exp_Main(Exp_Basic):
                 outputs, batch_y = self.train_vali_test(batch_x, batch_y, batch_x_mark, batch_y_mark)
                 loss = criterion(outputs, batch_y)
 
-                if (i + 1) % 20 == 0:
-                    print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
+                if (i + 1) % 100 == 0:
+                    print("\t[time: ] | iters: {0}, epoch: {1} | loss: {2:.7f}".format(
+                        datetime.now(),
+                        i + 1, epoch + 1, loss.item()))
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * (train_steps // self.args.batch_size - i)
                     left_iter = (train_steps // self.args.batch_size - i)

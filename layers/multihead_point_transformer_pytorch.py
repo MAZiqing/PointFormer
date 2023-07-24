@@ -3,7 +3,7 @@ from torch import nn, einsum
 from einops import repeat, rearrange
 import numpy as np
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # helpers
 
@@ -54,6 +54,7 @@ class MultiheadPointTransformerLayer(nn.Module):
             H,
             W,
             dim,
+            device,
             neighbor_r=10,
             dim_pos=2,
             heads=4,
