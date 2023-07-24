@@ -21,13 +21,30 @@ import numpy as np
 
 warnings.filterwarnings('ignore')
 
+import os
+import logging
+
+
+LOG_FILE = 'log/my.log'
+if not os.path.exists(os.path.dirname(LOG_FILE)):
+    os.makedirs(os.path.dirname(LOG_FILE))
+
+
+# """
+# $ Usage:
+#     from init_logger import Logger
+#     logger = Logger(__name__).get_log()
+# """
+
 
 class Exp_Main():
-    def __init__(self, args):
+    def __init__(self, args, logger):
         # super(Exp_Main, self).__init__(args)
         self.args = args
         self.device = self._acquire_device()
         self.model = self._build_model().to(self.device)
+        self.logger = logger
+
 
     def _acquire_device(self):
         if self.args.use_gpu:
@@ -136,7 +153,7 @@ class Exp_Main():
                 iter_count += 1
                 model_optim.zero_grad()
                 if i == 0:
-                    print('input shape: batch_x={}, batch_x_mark={}, batch_x_mark={}, batch_y_mark={}'.format(
+                    self.logger.info('input shape: batch_x={}, batch_x_mark={}, batch_x_mark={}, batch_y_mark={}'.format(
                         batch_x.shape, batch_x_mark.shape, batch_x_mark.shape, batch_y_mark.shape
                     ))
 
@@ -144,7 +161,7 @@ class Exp_Main():
                 loss = criterion(outputs, batch_y)
 
                 if (i + 1) % self.args.print_every == 0:
-                    print("\t [time: {}] | iters: {}, epoch: {} | loss: {:.7f}".format(
+                    self.logger.info("\t [time: {}] | iters: {}, epoch: {} | loss: {:.7f}".format(
                         str(datetime.now()),
                         i + 1,
                         epoch + 1,
@@ -152,7 +169,7 @@ class Exp_Main():
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * (train_steps // self.args.batch_size - i)
                     left_iter = (train_steps // self.args.batch_size - i)
-                    print('\tspeed: {:.4f}s/iter; left iter: {:.4f} iter; left minutes: {:.1f}'.format(speed,
+                    self.logger.info('\tspeed: {:.4f}s/iter; left iter: {:.4f} iter; left minutes: {:.1f}'.format(speed,
                                                                                                        left_iter,
                                                                                                        left_time // 60))
                     iter_count = 0
@@ -167,16 +184,16 @@ class Exp_Main():
                     model_optim.step()
                 a = 1
             # torch.save(self.model.state_dict(), path + '/' + 'checkpoint.pth')
-            print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
+            self.logger.info("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
             vali_loss = self.vali(vali_data, vali_loader, criterion)
             test_loss = self.vali(test_data, test_loader, criterion)
 
-            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
+            self.logger.info("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                 epoch + 1, train_steps, train_loss, vali_loss, test_loss))
             early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
-                print("Early stopping")
+                self.logger.info("Early stopping")
                 break
             adjust_learning_rate(model_optim, epoch + 1, self.args)
 
@@ -188,13 +205,13 @@ class Exp_Main():
     def test(self, setting, test=0):
         test_data, test_loader = self._get_data(flag='test')
         if test:
-            print('loading model')
+            self.logger.info('loading model')
             if self.args.pretrained_model == '':
                 self.model.load_state_dict(torch.load(os.path.join('./checkpoints/' + setting, 'checkpoint.pth')))
             else:
                 self.model.load_state_dict(
                     torch.load(os.path.join('./checkpoints/' + self.args.pretrained_model, 'checkpoint.pth')))
-            print('loading model finished')
+            self.logger.info('loading model finished')
 
         folder_path = './test_results/' + setting + '/'
         if not os.path.exists(folder_path):
@@ -225,11 +242,11 @@ class Exp_Main():
                     # pd = np.concatenate((input[0], pred[0]), axis=0)
                     visual(input[0], true[0], pred[0], os.path.join(folder_path, str(i) + '.pdf'))
                 if i % 10 == 0:
-                    print("batch: " + str(i))
+                    self.logger.info("batch: " + str(i))
 
         mse = mse / float(batch_num)
         mae = mae / float(batch_num)
-        print('mse:{}, mae:{}'.format(mse, mae))
+        self.logger.info('mse:{}, mae:{}'.format(mse, mae))
         f = open("result.txt", 'a')
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}'.format(mse, mae))

@@ -4,11 +4,13 @@ import torch
 from exp.exp_main import Exp_Main
 import random
 import numpy as np
+import logging
 
 fix_seed = 2021
 random.seed(fix_seed)
 torch.manual_seed(fix_seed)
 np.random.seed(fix_seed)
+
 
 parser = argparse.ArgumentParser(description='Corrformer for Time Series Forecasting')
 
@@ -33,6 +35,7 @@ parser.add_argument('--freq', type=str, default='h',
 parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
 parser.add_argument('--verbose', type=int, default=0, help='location of model checkpoints')
 parser.add_argument('--print_every', type=int, default=100, help='location of model checkpoints')
+parser.add_argument('--log_file', type=str, default='log/bash.log', help='location of model checkpoints')
 
 # forecasting task
 parser.add_argument('--seq_len', type=int, default=10, help='input sequence length')
@@ -103,8 +106,36 @@ if args.use_gpu and args.use_multi_gpu:
     args.device_ids = [int(id_) for id_ in device_ids]
     args.gpu = args.device_ids[0]
 
+LOG_FILE = args.log_file
+
+class Logger:
+    def __init__(self, logger=None, level=logging.INFO):
+        self.logger = logging.getLogger(logger)
+        self.logger.propagate = False  # 防止终端重复打印
+        self.logger.setLevel(level)
+        if not os.path.exists(os.path.dirname(LOG_FILE)):
+            os.makedirs(os.path.dirname(LOG_FILE))
+        fh = logging.FileHandler(LOG_FILE, 'a', encoding='utf-8')
+        fh.setLevel(level)
+        sh = logging.StreamHandler()
+        sh.setLevel(level)
+        formatter = logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+        fh.setFormatter(formatter)
+        sh.setFormatter(formatter)
+        self.logger.handlers.clear()
+        self.logger.addHandler(fh)
+        self.logger.addHandler(sh)
+        fh.close()
+        sh.close()
+
+    def get_log(self):
+        return self.logger
+
+logger = Logger(__name__).get_log()
 print('Args in experiment:')
+logger.info('Args in experiment:')
 print(args)
+logger.info(args)
 
 Exp = Exp_Main
 
@@ -137,15 +168,17 @@ if args.is_training:
             ii
         )
 
-        exp = Exp(args)  # set experiments
+        exp = Exp(args, logger)  # set experiments
         print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
+        logger.info('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
         exp.train(setting)
 
         print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+        logger.info('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
         exp.test(setting)
 
         if args.do_predict:
-            print('>>>>>>>predicting : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+            logger.info('>>>>>>>predicting : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
             exp.predict(setting, True)
 
         torch.cuda.empty_cache()
