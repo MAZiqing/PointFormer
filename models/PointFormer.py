@@ -207,11 +207,11 @@ class Upsample3DLayer(nn.Module):
 
 
 class PointAttentionLayer(nn.Module):
-    def __init__(self, *, H, W, in_dim, hid_dim, out_dim, neighbor_r=10):
+    def __init__(self, *, H, W, in_dim, hid_dim, out_dim, device, neighbor_r=10):
         super(PointAttentionLayer, self).__init__()
         self.point_transformer = MultiheadPointTransformerLayer(H=H, W=W, dim=in_dim, pos_mlp_hidden_dim=8,
                                                                 attn_mlp_hidden_mult=4, neighbor_r=neighbor_r,
-                                                                device=self.device)
+                                                                device=device)
 
         # self.svd_former = SVDTransformer(in_dim=in_dim, hid_dim=hid_dim, out_dim=out_dim)
         self.global_svd = GlobalSVD(H=H, W=W, dim=in_dim)
@@ -255,7 +255,7 @@ class PointAttentionLayer(nn.Module):
 class Model(nn.Module):
     def __init__(self, configs):
         super(Model, self).__init__()
-        self.device = configs.device
+        device = configs.device
         self.verbose = configs.verbose
         T = configs.seq_len
         self.seq_len = T
@@ -296,13 +296,13 @@ class Model(nn.Module):
 
         self.upsample_divide8 = Upsample3DLayer(dim=D*8, out_dim=D*4, target_size=(K, H//4, W//4))
 
-        self.attn = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, neighbor_r=self.neighbor_r)
-        self.attn_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, neighbor_r=self.neighbor_r//1.4)
-        self.attn_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, neighbor_r=self.neighbor_r//2)
-        self.attn_dec_divide8 = PointAttentionLayer(H=H//8, W=W//8, in_dim=D*8, hid_dim=D*8, out_dim=D*8, neighbor_r=self.neighbor_r//2.8)
-        self.attn_dec_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, neighbor_r=self.neighbor_r//2)
-        self.attn_dec_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, neighbor_r=self.neighbor_r//1.4)
-        self.attn_dec = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, neighbor_r=self.neighbor_r)
+        self.attn = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, device=device, neighbor_r=self.neighbor_r)
+        self.attn_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, device=device, neighbor_r=self.neighbor_r//1.4)
+        self.attn_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, device=device, neighbor_r=self.neighbor_r//2)
+        self.attn_dec_divide8 = PointAttentionLayer(H=H//8, W=W//8, in_dim=D*8, hid_dim=D*8, out_dim=D*8, device=device, neighbor_r=self.neighbor_r//2.8)
+        self.attn_dec_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, device=device, neighbor_r=self.neighbor_r//2)
+        self.attn_dec_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, device=device, neighbor_r=self.neighbor_r//1.4)
+        self.attn_dec = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, device=device, neighbor_r=self.neighbor_r)
 
         self.mlp_out = nn.Linear(D, configs.c_out)
 
