@@ -88,8 +88,9 @@ class MultiheadPointTransformerLayer(nn.Module):
         )
 
         neighbor_r = max(neighbor_r, 2)
-        indices = self.init_neighbor_indices(H=H, W=W, r=neighbor_r)
-        self.indices = torch.tensor(indices).to(device)
+        indices = torch.tensor(self.init_neighbor_indices(H=H, W=W, r=neighbor_r))
+        # self.indices = torch.tensor(indices).to(device)
+        self.register_buffer('indices', indices)
 
     def init_neighbor_indices(self, H, W, r=10):
 
