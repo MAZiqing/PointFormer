@@ -33,7 +33,7 @@ class Exp_Main():
         if self.args.use_gpu:
             if self.args.use_multi_gpu:
                 os.environ["CUDA_VISIBLE_DEVICES"] = str(self.args.devices)
-                device = torch.device('cuda:{}'.format(self.args.devices))
+                device = torch.device('cuda') #:{}'.format(self.args.devices))
             else:
                 os.environ["CUDA_VISIBLE_DEVICES"] = str(self.args.gpu)
                 device = torch.device('cuda:{}'.format(self.args.gpu))
