@@ -143,6 +143,7 @@ class Exp_Main():
         time_now = time.time()
 
         train_steps = len(train_loader)
+        self.logger.info('train_steps={}'.format(train_steps))
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
 
         model_optim = self._select_optimizer()
