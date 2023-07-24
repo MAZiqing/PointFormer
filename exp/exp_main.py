@@ -144,9 +144,11 @@ class Exp_Main():
                 loss = criterion(outputs, batch_y)
 
                 if (i + 1) % self.args.print_every == 0:
-                    print("\t[time: ] | iters: {0}, epoch: {1} | loss: {2:.7f}".format(
+                    print("\t [time: {}] | iters: {0}, epoch: {1} | loss: {2:.7f}".format(
                         datetime.now(),
-                        i + 1, epoch + 1, loss.item()))
+                        i + 1,
+                        epoch + 1,
+                        loss.item()))
                     speed = (time.time() - time_now) / iter_count
                     left_time = speed * (train_steps // self.args.batch_size - i)
                     left_iter = (train_steps // self.args.batch_size - i)
