@@ -34,10 +34,11 @@ class Exp_Main():
             if self.args.use_multi_gpu:
                 os.environ["CUDA_VISIBLE_DEVICES"] = str(self.args.devices)
                 device = torch.device('cuda') #:{}'.format(self.args.devices))
+                print('Use multiple GPU: [{}]'.format(self.args.devices))
             else:
                 os.environ["CUDA_VISIBLE_DEVICES"] = str(self.args.gpu)
                 device = torch.device('cuda:{}'.format(self.args.gpu))
-            print('Use GPU: 【{}】'.format(device))
+                print('Use GPU: 【{}】'.format(device))
         else:
             device = torch.device('cpu')
             print('Use CPU')
@@ -142,7 +143,7 @@ class Exp_Main():
                 outputs, batch_y = self.train_vali_test(batch_x, batch_y, batch_x_mark, batch_y_mark)
                 loss = criterion(outputs, batch_y)
 
-                if (i + 1) % 100 == 0:
+                if (i + 1) % self.args.print_every == 0:
                     print("\t[time: ] | iters: {0}, epoch: {1} | loss: {2:.7f}".format(
                         datetime.now(),
                         i + 1, epoch + 1, loss.item()))
