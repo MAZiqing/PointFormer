@@ -109,33 +109,37 @@ if args.use_gpu and args.use_multi_gpu:
 LOG_FILE = args.log_file
 
 class Logger:
-    def __init__(self, logger=None, level=logging.INFO):
+    def __init__(self, logger=None, level=logging.INFO, setting='x'):
         self.logger = logging.getLogger(logger)
         self.logger.propagate = False  # 防止终端重复打印
         self.logger.setLevel(level)
         if not os.path.exists(os.path.dirname(LOG_FILE)):
             os.makedirs(os.path.dirname(LOG_FILE))
         fh = logging.FileHandler(LOG_FILE, 'a', encoding='utf-8')
+        log_file_2 = os.path.join('./valid_results', setting, 'log.log')
+        if not os.path.exists(os.path.dirname(log_file_2)):
+            os.makedirs(os.path.dirname(log_file_2))
+        if not os.path.exists(os.path.dirname(os.path.dirname(log_file_2))):
+            os.makedirs(os.path.dirname(os.path.dirname(log_file_2)))
+        fh2 = logging.FileHandler(log_file_2, 'a', encoding='utf-8')
         fh.setLevel(level)
+        fh2.setLevel(level)
         sh = logging.StreamHandler()
         sh.setLevel(level)
         formatter = logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
         fh.setFormatter(formatter)
+        fh2.setFormatter(formatter)
         sh.setFormatter(formatter)
         self.logger.handlers.clear()
         self.logger.addHandler(fh)
+        self.logger.addHandler(fh2)
         self.logger.addHandler(sh)
         fh.close()
+        fh2.close()
         sh.close()
 
     def get_log(self):
         return self.logger
-
-logger = Logger(__name__).get_log()
-print('Args in experiment:')
-logger.info('Args in experiment:')
-print(args)
-logger.info(args)
 
 Exp = Exp_Main
 
@@ -167,6 +171,12 @@ if args.is_training:
             # args.des,
             ii
         )
+
+        logger = Logger(__name__, setting=setting).get_log()
+        print('Args in experiment:')
+        logger.info('Args in experiment:')
+        print(args)
+        logger.info(args)
 
         exp = Exp(args, logger)  # set experiments
         print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
