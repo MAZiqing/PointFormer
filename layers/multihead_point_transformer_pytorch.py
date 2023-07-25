@@ -31,10 +31,11 @@ def batched_index_select(values, indices, dim=1):
     dim += value_expand_len
     return values.gather(dim, indices)
 
-def vector_select_batched_index(values, indices, dim=3):
+
+def vector_select_batched_index(values, indices, dim=3, select_size=500):
     B, H, I, neighbor = indices.shape
     B, H, I, D = values.shape
-    select_size = 100
+    # select_size = 100
     values_selected = []
     for i in range(0, I, select_size):
         v = repeat(values, 'b h i d -> b h s i d', s=select_size)
@@ -61,6 +62,7 @@ class MultiheadPointTransformerLayer(nn.Module):
             dim_head=8,
             pos_mlp_hidden_dim=8,
             attn_mlp_hidden_mult=4,
+            # select_size=
             # num_neighbors=None
     ):
         super().__init__()

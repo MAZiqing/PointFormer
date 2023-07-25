@@ -45,7 +45,6 @@ class Exp_Main():
         self.model = self._build_model().to(self.device)
         self.logger = logger
 
-
     def _acquire_device(self):
         if self.args.use_gpu:
             if self.args.use_multi_gpu:
@@ -108,7 +107,7 @@ class Exp_Main():
 
         return outputs, batch_y
 
-    def vali(self, vali_data, vali_loader, criterion, setting):
+    def vali(self, vali_data, vali_loader, criterion, setting, epoch):
         folder_path = './valid_results/' + setting + '/'
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
@@ -122,13 +121,18 @@ class Exp_Main():
                 true = batch_y.detach().cpu()
                 loss = criterion(pred, true)
                 total_loss.append(loss)
-                if i % 50 == 0:
+                if i % 20 == 0:
                     inp = batch_x.detach().cpu().numpy()
                 # gt = np.concatenate((input[0], true[0]), axis=0)
                 # pd = np.concatenate((input[0], pred[0]), axis=0)
-                    visual(inp[0], true[0].numpy(), pred[0].numpy(), os.path.join(folder_path, str(i) + '.pdf'))
+                    folder_path_e = os.path.join(folder_path, epoch)
+                    if not os.path.exists(folder_path_e):
+                        os.makedirs(folder_path_e)
+                    visual(inp[0], true[0].numpy(), pred[0].numpy(), os.path.join(folder_path_e, str(i) + '.pdf'))
         total_loss = np.average(total_loss)
         self.model.train()
+        if self.args.data == 'moving_mnist':
+            total_loss = total_loss * 64 * 64
         return total_loss
 
     def train(self, setting):
@@ -198,8 +202,8 @@ class Exp_Main():
             # torch.save(self.model.state_dict(), path + '/' + 'checkpoint.pth')
             self.logger.info("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
-            vali_loss = self.vali(vali_data, vali_loader, criterion, setting=setting)
-            test_loss = self.vali(test_data, test_loader, criterion, setting=setting)
+            vali_loss = self.vali(vali_data, vali_loader, criterion, setting=setting, epoch=epoch)
+            test_loss = self.vali(test_data, test_loader, criterion, setting=setting, epoch=epoch)
 
             self.logger.info("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                 epoch + 1, train_steps, train_loss, vali_loss, test_loss))
@@ -249,11 +253,11 @@ class Exp_Main():
                 batch_num += 1
                 # visual
                 input = batch_x.detach().cpu().numpy()
-                if i % 50 == 0:
+                if i % 20 == 0:
                     # gt = np.concatenate((input[0], true[0]), axis=0)
                     # pd = np.concatenate((input[0], pred[0]), axis=0)
                     visual(input[0], true[0], pred[0], os.path.join(folder_path, str(i) + '.pdf'))
-                if i % 30 == 0:
+                if i % 20 == 0:
                     self.logger.info("batch: " + str(i))
 
         mse = mse / float(batch_num)
