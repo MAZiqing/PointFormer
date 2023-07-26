@@ -125,7 +125,7 @@ class Exp_Main():
                     inp = batch_x.detach().cpu().numpy()
                 # gt = np.concatenate((input[0], true[0]), axis=0)
                 # pd = np.concatenate((input[0], pred[0]), axis=0)
-                    folder_path_e = os.path.join(folder_path, epoch)
+                    folder_path_e = os.path.join(folder_path, str(epoch))
                     if not os.path.exists(folder_path_e):
                         os.makedirs(folder_path_e)
                     visual(inp[0], true[0].numpy(), pred[0].numpy(), os.path.join(folder_path_e, str(i) + '.pdf'))
