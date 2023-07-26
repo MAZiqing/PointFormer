@@ -370,6 +370,8 @@ if __name__ == '__main__':
         d_model = 32
         temporal_type = 'index'
         neighbor_r = 6
+        device = torch.device('cpu')
+        verbose = 0
 
 
     configs = Configs()

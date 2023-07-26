@@ -135,7 +135,8 @@ class GlobalConv(nn.Module):
     ):
         super().__init__()
         # self.heads = heads
-        self.w = nn.Parameter(torch.randn(dim, H, W, dtype=torch.cfloat))
+        self.wr = nn.Parameter(torch.randn(dim, H, W))
+        self.wi = nn.Parameter(torch.randn(dim, H, W))
         self.mode = mode
 
     def forward(self, x):
@@ -144,8 +145,10 @@ class GlobalConv(nn.Module):
         x = rearrange(x, 'b t h w c -> b t c h w')
 
         x_ = torch.fft.fft2(x, dim=(-2, -1))
-        x_ = x_ * self.w
-        out = torch.fft.ifft2(x_, dim=(-2, -1)).real
+        x_r = x_.real * self.wr
+        x_i = x_.imag * self.wi
+        x_out = torch.view_as_complex(torch.stack([x_r, x_i], dim=-1))
+        out = torch.fft.ifft2(x_out, dim=(-2, -1)).real
         out = rearrange(out, 'b t c h w -> b t h w c')
 
         return out
