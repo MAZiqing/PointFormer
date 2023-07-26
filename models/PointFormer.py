@@ -17,7 +17,7 @@ from layers.Corrformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLaye
     my_Layernorm, series_decomp
 
 from layers.multihead_point_transformer_pytorch import MultiheadPointTransformerLayer
-from models.SVDFormer import SVDTransformer, FullAttention, GlobalSVD
+from models.SVDFormer import SVDTransformer, FullAttention, GlobalSVD, GlobalConv
 
 
 
@@ -215,6 +215,8 @@ class PointAttentionLayer(nn.Module):
 
         # self.svd_former = SVDTransformer(in_dim=in_dim, hid_dim=hid_dim, out_dim=out_dim)
         self.global_svd = GlobalSVD(H=H, W=W, dim=in_dim)
+        self.global_conv = GlobalConv(H=H, W=W, dim=in_dim)
+
         self.full_attention = FullAttention()
 
         self.norm_q = nn.LayerNorm(in_dim * 1)
@@ -244,7 +246,8 @@ class PointAttentionLayer(nn.Module):
         q = self.norm_q(q_out)
         k, v = self.norm_kv(torch.cat([k, v], dim=-1)).chunk(2, dim=-1)
 
-        q = self.global_svd(q)
+        # q = self.global_svd(q)
+        q = self.global_conv(q)
         # out = self.svd_former(q, k, v)
         q, k, v = map(lambda t: rearrange(t, 'b t h w c -> (b h w) t c'), (q, k, v))
         out = self.full_attention(q, k, v)

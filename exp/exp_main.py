@@ -253,11 +253,11 @@ class Exp_Main():
                 batch_num += 1
                 # visual
                 input = batch_x.detach().cpu().numpy()
-                if i % 20 == 0:
+                if i % 10 == 0:
                     # gt = np.concatenate((input[0], true[0]), axis=0)
                     # pd = np.concatenate((input[0], pred[0]), axis=0)
                     visual(input[0], true[0], pred[0], os.path.join(folder_path, str(i) + '.pdf'))
-                if i % 20 == 0:
+                if i % 10 == 0:
                     self.logger.info("batch: " + str(i))
 
         mse = mse / float(batch_num)

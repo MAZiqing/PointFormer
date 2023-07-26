@@ -124,6 +124,33 @@ class GlobalSVD(nn.Module):
         return out
 
 
+class GlobalConv(nn.Module):
+    def __init__(
+            self,
+            *,
+            H=32,
+            W=32,
+            dim=32,
+            mode=8
+    ):
+        super().__init__()
+        # self.heads = heads
+        self.w = nn.Parameter(torch.randn(dim, H, W, dtype=torch.cfloat))
+        self.mode = mode
+
+    def forward(self, x):
+        B, T, H, W, C = x.shape
+        mode = self.mode
+        x = rearrange(x, 'b t h w c -> b t c h w')
+
+        x_ = torch.fft.fft2(x, dim=(-2, -1))
+        x_ = x_ * self.w
+        out = torch.fft.ifft2(x_, dim=(-2, -1)).real
+        out = rearrange(out, 'b t c h w -> b t h w c')
+
+        return out
+
+
 class FullAttention(nn.Module):
     def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
         super(FullAttention, self).__init__()
