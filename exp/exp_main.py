@@ -202,16 +202,19 @@ class Exp_Main():
             # torch.save(self.model.state_dict(), path + '/' + 'checkpoint.pth')
             self.logger.info("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
+            if self.args.data == 'moving_mnist':
+                train_loss = train_loss * 64 * 64
             vali_loss = self.vali(vali_data, vali_loader, criterion, setting=setting, epoch=epoch)
             test_loss = self.vali(test_data, test_loader, criterion, setting=setting, epoch=epoch)
 
             self.logger.info("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                 epoch + 1, train_steps, train_loss, vali_loss, test_loss))
+            self.logger.info('[Learning_rate now = {}]'.format(model_optim.param_groups['lr']))
             early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
                 self.logger.info("Early stopping")
                 break
-            adjust_learning_rate(model_optim, epoch + 1, self.args)
+            # adjust_learning_rate(model_optim, epoch + 1, self.args)
 
         best_model_path = path + '/' + 'checkpoint.pth'
         self.model.load_state_dict(torch.load(best_model_path))
