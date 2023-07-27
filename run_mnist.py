@@ -150,7 +150,7 @@ if args.is_training:
     for ii in range(args.itr):
         # setting record of experiments
         # setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_bs{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_fct{}_fcs{}_eb{}_dt{}_{}_{}'.format(
-        setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_bs{}_dm{}_nh{}_el{}_dl{}_gloC_{}'.format(
+        setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_bs{}_dm{}_nh{}_el{}_dl{}_lr{}_wPT{}_wGC{}_gloC_{}'.format(
             # args.model_id,
             args.model,
             args.data,
@@ -165,6 +165,9 @@ if args.is_training:
             args.n_heads,
             args.e_layers,
             args.d_layers,
+            args.learning_rate,
+            args.wPT,
+            args.wGC,
             # args.d_ff,
             # args.factor,
             # args.factor_temporal,
