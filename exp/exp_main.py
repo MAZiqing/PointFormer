@@ -175,7 +175,8 @@ class Exp_Main():
                 loss = criterion(outputs, batch_y)
                 train_loss.append(loss.item())
 
-                if (i + 1) % self.args.print_every == 0:
+                print_every = train_steps // 5 if self.args.print_every == -1 else self.args.print_every
+                if (i + 1) % print_every == 0:
                     self.logger.info("\t | iters: {}/{}, epoch: {} | loss: {:.7f} | total_loss {:.3f}".format(
                         # str(datetime.now()),
                         i + 1,
@@ -210,7 +211,7 @@ class Exp_Main():
 
             self.logger.info("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                 epoch + 1, train_steps, train_loss, vali_loss, test_loss))
-            self.logger.info('[Learning_rate now = {}]'.format(model_optim.param_groups['lr']))
+            self.logger.info('[Learning_rate now = {}]'.format(model_optim.param_groups[0]['lr']))
             early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
                 self.logger.info("Early stopping")
