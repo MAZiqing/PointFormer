@@ -63,13 +63,13 @@ class DownSampling3D(nn.Module):
         if self.arch_type == '3d_interp_2d':
             self.inter_conv = nn.Conv3d(in_channels=in_channels, out_channels=mid_dim, kernel_size=(3, 3, 3),
                                         padding=(1, 1, 1))
-            # self.act = nn.LeakyReLU(0.1)
-            self.act = nn.Tanh()
+            self.act = nn.LeakyReLU(0.1)
+            # self.act = nn.Tanh()
         elif self.arch_type == '2d_interp_2d':
             self.inter_conv = nn.Conv2d(in_channels=in_channels, out_channels=mid_dim, kernel_size=(3, 3),
                                         padding=(1, 1))
-            # self.act = nn.LeakyReLU(0.1)
-            self.act = nn.Tanh()
+            self.act = nn.LeakyReLU(0.1)
+            # self.act = nn.Tanh()
         else:
             raise NotImplementedError
         self.conv = nn.Conv2d(in_channels=mid_dim, out_channels=out_dim, kernel_size=(3, 3), padding=(1, 1))
@@ -116,7 +116,7 @@ class DownSampling3D(nn.Module):
             raise NotImplementedError
         x = self.conv(x)  # Shape (B * T_new, out_dim, H_new, W_new)
         x = x.reshape(B, self.target_size[0], self.out_dim, self.target_size[1], self.target_size[2]) \
-            .permute(0, 1, 3, 4,2)
+            .permute(0, 1, 3, 4, 2)
         x = self.norm3d(x)
         return x
 
