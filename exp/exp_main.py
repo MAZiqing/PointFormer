@@ -128,7 +128,8 @@ class Exp_Main():
                     folder_path_e = os.path.join(folder_path, str(epoch))
                     if not os.path.exists(folder_path_e):
                         os.makedirs(folder_path_e)
-                    visual(inp[0], true[0].numpy(), pred[0].numpy(), os.path.join(folder_path_e, str(i) + '.pdf'))
+                    visual(inp[0], true[0].numpy(), pred[0].numpy(),
+                           os.path.join(folder_path_e, 'epoch' + str(epoch) + '-' + str(i) + '.pdf'))
         total_loss = np.average(total_loss)
         self.model.train()
         if self.args.data == 'moving_mnist':
