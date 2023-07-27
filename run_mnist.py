@@ -36,6 +36,9 @@ parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='l
 parser.add_argument('--verbose', type=int, default=0, help='location of model checkpoints')
 parser.add_argument('--print_every', type=int, default=100, help='location of model checkpoints')
 parser.add_argument('--log_file', type=str, default='log/bash.log', help='location of model checkpoints')
+# ablation study
+parser.add_argument('--wPT', type=int, default=1, help='location of model checkpoints')
+parser.add_argument('--wGC', type=int, default=1, help='location of model checkpoints')
 
 # forecasting task
 parser.add_argument('--seq_len', type=int, default=10, help='input sequence length')
