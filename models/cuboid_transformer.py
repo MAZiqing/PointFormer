@@ -2781,7 +2781,7 @@ class FinalStackUpsamplingDecoder(nn.Module):
                 x = conv_block(x).permute(0, 2, 3, 1).reshape(B, T, H, W, -1)
         return x
 
-class CuboidTransformerModel(nn.Module):
+class Model(nn.Module):
     """Cuboid Transformer for spatiotemporal forecasting
 
     We adopt the Non-autoregressive encoder-decoder architecture.
@@ -2800,8 +2800,9 @@ class CuboidTransformerModel(nn.Module):
 
     """
     def __init__(self,
-                 input_shape,
-                 target_shape,
+                 configs,
+                 input_shape=None,
+                 target_shape=None,
                  base_units=128,
                  block_units=None,
                  scale_alpha=1.0,
@@ -2888,7 +2889,10 @@ class CuboidTransformerModel(nn.Module):
         z_init_method
             How the initial input to the decoder is initialized
         """
-        super(CuboidTransformerModel, self).__init__()
+        super(Model, self).__init__()
+        input_shape = (configs.seq_len, configs.height, configs.width, configs.c_in)
+        target_shape = (configs.pred_len, configs.height, configs.width, configs.c_out)
+        # target_shape = (10, 16, 16, 3)
         # initialization mode
         self.attn_linear_init_mode = attn_linear_init_mode
         self.ffn_linear_init_mode = ffn_linear_init_mode
@@ -3165,7 +3169,7 @@ class CuboidTransformerModel(nn.Module):
             raise NotImplementedError
         return initial_z
 
-    def forward(self, x, verbose=False):
+    def forward(self, x, batch_y=None, batch_x_mark=None, batch_y_mark=None, verbose=False):
         """
 
         Parameters
@@ -3204,13 +3208,28 @@ class CuboidTransformerModel(nn.Module):
 
 
 if __name__ == '__main__':
+    class Configs(object):
+        seq_len = 10
+        pred_len = 13
+        height = 32
+        width = 32
+        c_in = 3
+        c_out = 3
+        d_model = 32
+        temporal_type = 'index'
+        neighbor_r = 6
+        device = torch.device('cpu')
+        verbose = 0
+        wPT = 1
+        wGC = 1
+
+    configs = Configs()
     # Shape of the input tensor. It will be (T, H, W, C_in)
     B = 1
     input_shape = (10, 16, 16, 3)
     output_shape = (13, 16, 16, 3)
     input_x = torch.randn(B, *input_shape)
-    model = CuboidTransformerModel(input_shape=input_shape,
-                                   target_shape=output_shape)
+    model = Model(configs)
 
     # pos = torch.randn(1, 8*8, 3)
     out = model.forward(input_x)

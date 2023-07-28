@@ -17,8 +17,8 @@ parser = argparse.ArgumentParser(description='Corrformer for Time Series Forecas
 # basic config
 parser.add_argument('--is_training', type=int, default=1, help='status')
 # parser.add_argument('--model_id', type=str, default='test', help='model id')
-parser.add_argument('--model', type=str, default='PointFormer',
-                    help='model name, options: [Corrformer, PointFormer]')
+parser.add_argument('--model', type=str, default='EarthFormer',
+                    help='model name, options: [Corrformer, PointFormer, Earthformer]')
 
 # data loader
 parser.add_argument('--data', type=str, default='moving_mnist', help='dataset type')
@@ -81,7 +81,7 @@ parser.add_argument('--temporal_type', type=str, default='index',
 
 # optimization
 parser.add_argument('--num_workers', type=int, default=10, help='data loader num workers')
-parser.add_argument('--itr', type=int, default=2, help='experiments times')
+parser.add_argument('--itr', type=int, default=1, help='experiments times')
 parser.add_argument('--train_epochs', type=int, default=1000, help='train epochs')
 parser.add_argument('--batch_size', type=int, default=1, help='batch size of train input data')
 parser.add_argument('--patience', type=int, default=10, help='early stopping patience')
