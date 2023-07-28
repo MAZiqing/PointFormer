@@ -167,8 +167,8 @@ class Exp_Main():
                 iter_count += 1
                 model_optim.zero_grad()
                 if i == 0:
-                    self.logger.info('input shape: batch_x={}, batch_x_mark={}, batch_x_mark={}, batch_y_mark={}'.format(
-                        batch_x.shape, batch_x_mark.shape, batch_x_mark.shape, batch_y_mark.shape
+                    self.logger.info('input shape: batch_x={}, batch_y={}, batch_x_mark={}, batch_y_mark={}'.format(
+                        batch_x.shape, batch_y.shape, batch_x_mark.shape, batch_y_mark.shape
                     ))
 
                 outputs, batch_y = self.train_vali_test(batch_x, batch_y, batch_x_mark, batch_y_mark)

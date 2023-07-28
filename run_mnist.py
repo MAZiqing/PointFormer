@@ -34,7 +34,7 @@ parser.add_argument('--freq', type=str, default='h',
                     help='freq for time features encoding, options:[s:secondly, t:minutely, h:hourly, d:daily, b:business days, w:weekly, m:monthly], you can also use more detailed freq like 15min or 3h')
 parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
 parser.add_argument('--verbose', type=int, default=0, help='location of model checkpoints')
-parser.add_argument('--print_every', type=int, default=100, help='location of model checkpoints')
+parser.add_argument('--print_every', type=int, default=100, help='print every x itr in one epoch, can be set to -1')
 parser.add_argument('--log_file', type=str, default='log/bash.log', help='location of model checkpoints')
 # ablation study
 parser.add_argument('--wPT', type=int, default=1, help='location of model checkpoints')
@@ -150,7 +150,7 @@ if args.is_training:
     for ii in range(args.itr):
         # setting record of experiments
         # setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_bs{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_fct{}_fcs{}_eb{}_dt{}_{}_{}'.format(
-        setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_bs{}_dm{}_nh{}_el{}_dl{}_lr{}_wPT{}_wGC{}_gloC_{}'.format(
+        setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_bs{}_dm{}_nh{}_el{}_dl{}_lr{}_wPT{}_wGC{}_gloC_mlpFullAtt_{}'.format(
             # args.model_id,
             args.model,
             args.data,
@@ -193,9 +193,9 @@ if args.is_training:
         logger.info('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
         exp.test(setting)
 
-        if args.do_predict:
-            logger.info('>>>>>>>predicting : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
-            exp.predict(setting, True)
+        # if args.do_predict:
+        #     logger.info('>>>>>>>predicting : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+        #     exp.predict(setting, True)
 
         torch.cuda.empty_cache()
 # else:

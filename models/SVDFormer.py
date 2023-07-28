@@ -131,12 +131,13 @@ class GlobalConv(nn.Module):
             H=32,
             W=32,
             dim=32,
-            mode=8
+            mode=8,
+            T=10
     ):
         super().__init__()
         # self.heads = heads
-        self.wr = nn.Parameter(torch.randn(dim, H, W))
-        self.wi = nn.Parameter(torch.randn(dim, H, W))
+        self.wr = nn.Parameter(torch.randn(T, dim, H, W))
+        self.wi = nn.Parameter(torch.randn(T, dim, H, W))
         self.mode = mode
 
     def forward(self, x):
@@ -155,12 +156,14 @@ class GlobalConv(nn.Module):
 
 
 class FullAttention(nn.Module):
-    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
+    def __init__(self, q_length, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
         super(FullAttention, self).__init__()
         self.scale = scale
         self.mask_flag = mask_flag
         self.output_attention = output_attention
         self.dropout = nn.Dropout(attention_dropout)
+
+        self.mlp = nn.Parameter(torch.randn(q_length, q_length))
 
     def forward(self, queries, keys, values, attn_mask=None):
         B, L, E = queries.shape
@@ -176,6 +179,8 @@ class FullAttention(nn.Module):
 
         A = self.dropout(torch.softmax(scale * scores, dim=-1))
         V = torch.einsum("bls,bsd->bld", A, values)
+
+        V = torch.einsum("bld,pl->bpd", V, self.mlp)
         return V
 
 

@@ -207,7 +207,7 @@ class Upsample3DLayer(nn.Module):
 
 
 class PointAttentionLayer(nn.Module):
-    def __init__(self, *, H, W, in_dim, hid_dim, out_dim, device, configs, neighbor_r=10):
+    def __init__(self, *, H, W, T, in_dim, hid_dim, out_dim, device, configs, neighbor_r=10):
         super(PointAttentionLayer, self).__init__()
         self.configs = configs
         self.point_transformer = MultiheadPointTransformerLayer(H=H, W=W, dim=in_dim, pos_mlp_hidden_dim=8,
@@ -215,10 +215,10 @@ class PointAttentionLayer(nn.Module):
                                                                 device=device)
 
         # self.svd_former = SVDTransformer(in_dim=in_dim, hid_dim=hid_dim, out_dim=out_dim)
-        self.global_svd = GlobalSVD(H=H, W=W, dim=in_dim)
-        self.global_conv = GlobalConv(H=H, W=W, dim=in_dim)
+        # self.global_svd = GlobalSVD(H=H, W=W, dim=in_dim, T=T)
+        self.global_conv = GlobalConv(H=H, W=W, dim=in_dim, T=T)
 
-        self.full_attention = FullAttention()
+        self.full_attention = FullAttention(q_length=T)
 
         self.norm_q = nn.LayerNorm(in_dim * 1)
         self.norm_kv = nn.LayerNorm(in_dim * 2)
@@ -253,7 +253,10 @@ class PointAttentionLayer(nn.Module):
             q = self.global_conv(q)
         # out = self.svd_former(q, k, v)
         q, k, v = map(lambda t: rearrange(t, 'b t h w c -> (b h w) t c'), (q, k, v))
-        out = self.full_attention(q, k, v)
+
+        k_ = torch.cat([q, k], dim=-2)
+        v_ = torch.cat([q, v], dim=-2)
+        out = self.full_attention(q, k_, v_)
         out = rearrange(out, '(b h w) t c -> b t h w c', b=B, h=H, w=W)
         return out
 
@@ -302,13 +305,13 @@ class Model(nn.Module):
 
         self.upsample_divide8 = Upsample3DLayer(dim=D*8, out_dim=D*4, target_size=(K, H//4, W//4))
 
-        self.attn = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, device=device, configs=configs, neighbor_r=self.neighbor_r)
-        self.attn_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, device=device, configs=configs, neighbor_r=self.neighbor_r//1.4)
-        self.attn_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, device=device, configs=configs, neighbor_r=self.neighbor_r//2)
-        self.attn_dec_divide8 = PointAttentionLayer(H=H//8, W=W//8, in_dim=D*8, hid_dim=D*8, out_dim=D*8, device=device, configs=configs, neighbor_r=self.neighbor_r//2.8)
-        self.attn_dec_divide4 = PointAttentionLayer(H=H//4, W=W//4, in_dim=D*4, hid_dim=D*4, out_dim=D*4, device=device, configs=configs, neighbor_r=self.neighbor_r//2)
-        self.attn_dec_divide2 = PointAttentionLayer(H=H//2, W=W//2, in_dim=D*2, hid_dim=D*2, out_dim=D*2, device=device, configs=configs, neighbor_r=self.neighbor_r//1.4)
-        self.attn_dec = PointAttentionLayer(H=H, W=W, in_dim=D, hid_dim=D, out_dim=D, device=device, configs=configs, neighbor_r=self.neighbor_r)
+        self.attn = PointAttentionLayer(H=H, W=W, T=T, in_dim=D, hid_dim=D, out_dim=D, device=device, configs=configs, neighbor_r=self.neighbor_r)
+        self.attn_divide2 = PointAttentionLayer(H=H//2, W=W//2, T=T, in_dim=D*2, hid_dim=D*2, out_dim=D*2, device=device, configs=configs, neighbor_r=self.neighbor_r//1.4)
+        self.attn_divide4 = PointAttentionLayer(H=H//4, W=W//4, T=T, in_dim=D*4, hid_dim=D*4, out_dim=D*4, device=device, configs=configs, neighbor_r=self.neighbor_r//2)
+        self.attn_dec_divide8 = PointAttentionLayer(H=H//8, W=W//8, T=K, in_dim=D*8, hid_dim=D*8, out_dim=D*8, device=device, configs=configs, neighbor_r=self.neighbor_r//2.8)
+        self.attn_dec_divide4 = PointAttentionLayer(H=H//4, W=W//4, T=K, in_dim=D*4, hid_dim=D*4, out_dim=D*4, device=device, configs=configs, neighbor_r=self.neighbor_r//2)
+        self.attn_dec_divide2 = PointAttentionLayer(H=H//2, W=W//2, T=K, in_dim=D*2, hid_dim=D*2, out_dim=D*2, device=device, configs=configs, neighbor_r=self.neighbor_r//1.4)
+        self.attn_dec = PointAttentionLayer(H=H, W=W, in_dim=D, T=K, hid_dim=D, out_dim=D, device=device, configs=configs, neighbor_r=self.neighbor_r)
 
         self.mlp_out = nn.Linear(D, configs.c_out)
 
@@ -375,6 +378,8 @@ if __name__ == '__main__':
         neighbor_r = 6
         device = torch.device('cpu')
         verbose = 0
+        wPT = 1
+        wGC = 1
 
 
     configs = Configs()
